@@ -23,7 +23,33 @@
         "content": [
           {
             "type": "text",
-            "text": "Before any arithmetic, write down what you are solving for. One letter, and a sentence saying what it measures. A problem with two plausible unknowns is a problem you have not read yet."
+            "text": "A hands-on lesson is a checklist, not an explanation. Work down it with your actual problem set open, and tick each step as you go."
+          }
+        ]
+      },
+      {
+        "type": "steps",
+        "title": "Set up problem one, end to end",
+        "items": [
+          {
+            "id": "s1",
+            "instruction": "Copy problem one onto a clean page and write the sentence it is actually about.",
+            "check": "You have one written sentence in front of you that does not contain an equals sign."
+          },
+          {
+            "id": "s2",
+            "instruction": "Name the unknown with one letter, and write what it measures underneath.",
+            "check": "A single letter and a plain phrase sit next to each other, and the letter appears in no other role."
+          },
+          {
+            "id": "s3",
+            "instruction": "Write the equation both ways round, once for each way you could read it.",
+            "check": "Two equations, and at least one of them has the unknown on both sides."
+          },
+          {
+            "id": "s4",
+            "instruction": "Say the equation out loud as a sentence about the quantities.",
+            "check": "You can say it without reading it, and what you say sounds like arithmetic rather than like a formula."
           }
         ]
       },

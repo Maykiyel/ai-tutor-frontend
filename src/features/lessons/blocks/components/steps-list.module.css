@@ -1,0 +1,31 @@
+/*
+ * One class, used by every row of every steps block.
+ *
+ * Mantine style props cover spacing and colour but have no pseudo-selector form,
+ * so a hover or focus affordance has to come from a rule. It is written once,
+ * here, for the one class every row carries: there is no rule that can match one
+ * step and not another, because nothing tells the stylesheet which step is which.
+ * Every value is a Mantine theme token, so the checklist reads the same in either
+ * colour scheme.
+ */
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+  cursor: pointer;
+
+  /* One hover rule for every row and one focus rule for every row, so what
+     pointing at a step looks like is the same whichever step it is. */
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}

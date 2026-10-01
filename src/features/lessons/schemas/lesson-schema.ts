@@ -152,6 +152,24 @@ export const tableBlockSchema = z.object({
  * point at sources and glossary terms the response hydrates, and the block has
  * nothing to say about them before an attempt is submitted.
  */
+/**
+ * A checklist for a hands-on lesson. Each item says what to do and how the
+ * learner will know it is done; the check is a hint, never graded, which is why
+ * the contract posts a `done` flag per step and no feedback for it. Mirrors
+ * `stepsBlock` in `docs/lesson-schema.json`.
+ */
+const stepsItemSchema = z.object({
+  id: z.string().regex(/^s[0-9]+$/),
+  instruction: z.string(),
+  check: z.string(),
+})
+
+export const stepsBlockSchema = z.object({
+  type: z.literal('steps'),
+  title: z.string(),
+  items: z.array(stepsItemSchema).min(1),
+})
+
 const quizOptionSchema = z.object({
   id: z.string().regex(/^[a-z]$/),
   text: z.string(),
@@ -172,13 +190,31 @@ export const quizBlockSchema = z.object({
   questions: z.array(quizQuestionSchema).min(1),
 })
 
+/**
+ * A prompt the learner answers from memory. The contract stores a `modelAnswer`
+ * and a `rubric` with the block and strips both from the lesson response, which
+ * is why **neither field is in this schema**: a lesson response is the shape
+ * below, and a response carrying either one is a contract breach the reader must
+ * not act on. The two are not parsed here, so there is nothing for a component
+ * to render even if a backend ever sends one. They come back in the attempt
+ * result, after the learner has submitted. Mirrors `recallBlock` in
+ * `docs/lesson-schema.json`.
+ */
+export const recallBlockSchema = z.object({
+  type: z.literal('recall'),
+  id: z.string().regex(/^rc[0-9]+$/),
+  prompt: z.string(),
+})
+
 export type ParagraphBlock = z.infer<typeof paragraphBlockSchema>
 export type HeadingBlock = z.infer<typeof headingBlockSchema>
 export type CalloutBlock = z.infer<typeof calloutBlockSchema>
 export type CodeBlock = z.infer<typeof codeBlockSchema>
 export type FigureBlock = z.infer<typeof figureBlockSchema>
 export type TableBlock = z.infer<typeof tableBlockSchema>
+export type StepsBlock = z.infer<typeof stepsBlockSchema>
 export type QuizBlock = z.infer<typeof quizBlockSchema>
+export type RecallBlock = z.infer<typeof recallBlockSchema>
 
 /**
  * Every block type `docs/lesson-schema.json` defines, fixed at nine. This is the
@@ -202,9 +238,10 @@ export const lessonBlockTypeSchema = z.enum([
 export type LessonBlockType = z.infer<typeof lessonBlockTypeSchema>
 
 /**
- * The blocks this build has a schema for. It is a subset of the nine contract
- * types: steps and recall are defined by the contract and arrive with their own
- * tickets. `LessonBlock` grows as each lands.
+ * The blocks this build has a schema for, which is now all nine contract types.
+ * `LessonBlock` grew one arm per ticket, and a block type the app has no schema
+ * for is not the same thing as a block type it does not render: the first is a
+ * gap in this file, the second a gap in the registry.
  */
 export type LessonBlock =
   | z.infer<typeof paragraphBlockSchema>
@@ -213,7 +250,9 @@ export type LessonBlock =
   | z.infer<typeof codeBlockSchema>
   | z.infer<typeof figureBlockSchema>
   | z.infer<typeof tableBlockSchema>
+  | z.infer<typeof stepsBlockSchema>
   | z.infer<typeof quizBlockSchema>
+  | z.infer<typeof recallBlockSchema>
 
 /**
  * The lesson without its blocks. `blocks` is deliberately absent: it is the one
