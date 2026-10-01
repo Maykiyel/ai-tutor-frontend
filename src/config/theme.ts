@@ -1,32 +1,39 @@
 import { Button, createTheme } from '@mantine/core'
 
 export const theme = createTheme({
-  primaryColor: 'lime',
+  primaryColor: 'blue',
 
   /**
    * The shade a filled surface takes, per colour scheme.
    *
-   * The same value is used in both schemes, which is a deliberate consequence of a
-   * limitation in Mantine rather than a preference. When it resolves a filled
-   * variant it calls `parseThemeColor` **without a colour scheme**, so the
-   * black-or-white decision is always made from the *light* scheme's primary shade.
-   * A dark scheme can therefore never get dark text on a light filled surface, and
-   * no `autoContrast` setting changes that: the flag is honoured, but it is
-   * evaluated against the wrong scheme.
+   * This one number governs more than buttons. Mantine derives
+   * `--mantine-color-<primary>-text` from it, so **every label, link, and icon
+   * painted in the primary colour on the page resolves to this shade in the light
+   * scheme.** That is why a bright hue is such a trap: at `shade 4` a link is a
+   * 1.5:1 smear on a light page. Choosing a dark shade is what makes primary-coloured
+   * *text* legible, and it is a stricter requirement than making a button legible,
+   * because text sits directly on the page rather than inside a filled shape.
    *
-   * So the shade is chosen to be readable with white text, and one value has to
-   * serve both. `lime-7` `#4d7c0f` is that value:
+   * The same value serves both schemes, which is a consequence of a limitation in
+   * Mantine rather than a preference: when it resolves a filled variant it calls
+   * `parseThemeColor` **without a colour scheme**, so the black-or-white decision
+   * is always made from the *light* scheme's primary shade. A dark scheme can
+   * therefore never get dark text on a light filled surface, and no `autoContrast`
+   * setting changes that — the flag is honoured, but evaluated against the wrong
+   * scheme. So the shade has to work with white text in both.
    *
-   * - on white, 4.99:1 — AA, where the old `lime-6` was 3.09:1 and failed for any
-   *   label that was not large text;
-   * - as the filled surface in the dark scheme, still 4.99:1, and 3.4:1 against the
-   *   dark page behind it, so the button's own edge stays visible;
-   * - on hover the shade steps to `lime-8` `#3f6212`, which is darker and so
-   *   *more* legible at 7.25:1, not less.
+   * `blue-7` `#1d4ed8` is that shade, measured rather than eyeballed:
    *
-   * The cost is that a primary button in the dark scheme is now a deep green rather
-   * than a bright lime. Bright lime is still the accent: the sidebar's active row
-   * uses `lime-4` directly and reads at 7.58:1.
+   * - as primary-coloured text on white, 6.77:1, and 6.25:1 on the warm gray page;
+   * - as a filled button with a white label, 6.77:1;
+   * - against the dark page in the dark scheme it is still 6.77:1, and the button's
+   *   own edge stays visible;
+   * - on hover the shade steps to `blue-8` `#1e40af`, darker and so *more* legible.
+   *
+   * In the dark scheme, primary-coloured text is a different value entirely —
+   * Mantine uses `blue-4` `#60a5fa` there — which is light on a dark page and reads
+   * at 6.10:1. So the accent is cool and bright in the dark scheme and cool and
+   * deep in the light one, without either being configured by hand.
    *
    * `theme.test.tsx` measures all of this rather than taking it on trust.
    */
@@ -39,25 +46,39 @@ export const theme = createTheme({
    * Let Mantine choose black or white for filled surfaces by luminance rather than
    * always assuming white.
    *
-   * This cannot fix the button, for the reason above. It is kept because it does
-   * fix the components that pass an explicit light shade — a `yellow.4` badge gets
-   * dark text instead of unreadable white — and because it means a future change to
-   * `primaryShade` is judged on the real colour rather than on an assumption.
+   * This cannot fix a filled button, for the reason above. It is kept because it
+   * does fix the components that pass an explicit light shade — a `yellow.4` badge
+   * gets dark text instead of unreadable white — and because it means a future
+   * change to `primaryShade` is judged on the real colour rather than on an
+   * assumption.
    */
   autoContrast: true,
 
   colors: {
-    lime: [
-      '#f7fee7',
-      '#ecfccb',
-      '#d9f99d',
-      '#bef264',
-      '#a3e635',
-      '#84cc16',
-      '#65a30d',
-      '#4d7c0f',
-      '#3f6212',
-      '#365314',
+    /**
+     * A cool blue, replacing the lime this theme started with.
+     *
+     * Lime was a poor primary for anything drawn as *text* on this app's warm
+     * near-white page: even at its most legible shade it read as a bright smear, and
+     * a link or a label in it was unusable. Blue is deep enough at shade 7 to carry
+     * text, and its dark-scheme counterpart at shade 4 is bright enough to carry
+     * text on a dark page, so the same hue works in both without a second palette.
+     *
+     * The gray ramp below stays warm on purpose. A cool primary against a warm
+     * neutral is a deliberate pairing and changing both would have been a larger
+     * decision than the legibility problem called for.
+     */
+    blue: [
+      '#eff6ff',
+      '#dbeafe',
+      '#bfdbfe',
+      '#93c5fd',
+      '#60a5fa',
+      '#3b82f6',
+      '#2563eb',
+      '#1d4ed8',
+      '#1e40af',
+      '#1e3a8a',
     ],
 
     gray: [
@@ -89,16 +110,16 @@ export const theme = createTheme({
     NavLink: {
       styles: {
         root: {
-          '--nl-bg': 'var(--mantine-color-lime-4)',
-          '--nl-color': 'var(--mantine-color-gray-8)',
-          '--nl-hover': 'var(--mantine-color-lime-5)',
+          '--nl-bg': 'var(--mantine-color-blue-1)',
+          '--nl-color': 'var(--mantine-color-blue-9)',
+          '--nl-hover': 'var(--mantine-color-blue-2)',
         },
       },
     },
 
     Button: Button.extend({
       defaultProps: {
-        color: 'lime',
+        color: 'blue',
         variant: 'filled',
       },
     }),

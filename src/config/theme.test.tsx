@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { cleanup, render } from '@testing-library/react'
-import { Button, MantineProvider, NavLink, type MantineThemeOverride } from '@mantine/core'
-import { afterEach, describe, expect, it } from 'vitest'
+import { Button, Code, MantineProvider, NavLink, type MantineThemeOverride } from '@mantine/core'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { theme } from './theme'
 
@@ -37,42 +37,93 @@ type Scheme = 'light' | 'dark'
 // stays in the document and the next one's `getByRole('button')` finds several.
 afterEach(cleanup)
 
-/** Mantine emits every variable it generates into one style element. */
+/**
+ * Mantine emits every variable it generates into one style element — but it emits
+ * more than one element with that marker, including a media-query sheet, so the
+ * right one is found by what is in it rather than by position.
+ */
 function mantineStyleSheet(): string {
-  const style = document.querySelector('style[data-mantine-styles]')
+  const candidates = Array.from(document.querySelectorAll('style[data-mantine-styles]'))
+    .map((node) => node.textContent ?? '')
+    .filter((text) => text.includes('--mantine-color-'))
 
-  if (!style?.textContent) {
+  const style = candidates[candidates.length - 1]
+
+  if (!style) {
     throw new Error(
       'Mantine generated no CSS variables. The provider has to be rendered before ' +
         'anything can be read out of it.',
     )
   }
 
-  return style.textContent
+  return style
 }
 
 /**
  * The variables that apply in one colour scheme: the shared block, then that
  * scheme's own overrides. Mantine writes shared values under a bare `:root` and
  * per-scheme values under `:root[data-mantine-color-scheme="..."]`.
+ *
+ * Parsed once for the whole file, from a single provider mount. The theme does not
+ * change while these tests run, and Mantine does not re-emit variables for a second
+ * identical provider, so mounting per test made the reads depend on ordering.
  */
+const schemeVariables = new Map<Scheme, Map<string, string>>()
+
+beforeAll(() => {
+  renderInTheme(<Code block>select_all = True</Code>)
+
+  for (const scheme of ['light', 'dark'] satisfies Scheme[]) {
+    const variables = new Map<string, string>()
+
+    for (const [, selector, body] of mantineStyleSheet().matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const isShared = !selector.includes('data-mantine-color-scheme')
+      const isThisScheme = selector.includes(`data-mantine-color-scheme="${scheme}"`)
+
+      if (!isShared && !isThisScheme) {
+        continue
+      }
+
+      for (const [, name, value] of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+        variables.set(name, value.trim())
+      }
+    }
+
+    schemeVariables.set(scheme, variables)
+  }
+})
+
 function variablesFor(scheme: Scheme): Map<string, string> {
-  const variables = new Map<string, string>()
+  const variables = schemeVariables.get(scheme)
 
-  for (const [, selector, body] of mantineStyleSheet().matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const isShared = !selector.includes('data-mantine-color-scheme')
-    const isThisScheme = selector.includes(`data-mantine-color-scheme="${scheme}"`)
+  if (!variables) {
+    throw new Error(`no CSS variables were parsed for the ${scheme} scheme`)
+  }
 
-    if (!isShared && !isThisScheme) {
-      continue
-    }
-
-    for (const [, name, value] of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
-      variables.set(name, value.trim())
-    }
+  if (!variables.has('--mantine-color-white')) {
+    // A filled button's label resolves to this, so a parse that missed it would
+    // fail every button case with a message about `var(--mantine-color-white)`
+    // rather than saying what actually went wrong. It is the canary for the whole
+    // parse, so it is worth naming here.
+    throw new Error(
+      `the ${scheme} parse read ${variables.size} variables but not ` +
+        '--mantine-color-white, so the stylesheet was not the one carrying the ' +
+        'colour variables. Check `mantineStyleSheet`.',
+    )
   }
 
   return variables
+}
+
+/** Looks a variable up by name and resolves it to a literal. */
+function token(name: string, variables: Map<string, string>): string {
+  const value = variables.get(name)
+
+  if (value === undefined) {
+    throw new Error(`Mantine emitted no ${name}`)
+  }
+
+  return resolve(value, variables)
 }
 
 /** Follows `var()` references until a literal, the way a browser would. */
@@ -221,6 +272,77 @@ describe('the theme is legible', () => {
       ).toBeGreaterThanOrEqual(AA_BODY_TEXT)
     },
   )
+
+  it.each<Scheme>(['light', 'dark'])(
+    'primary-coloured text reaches AA on the page in %s',
+    (scheme) => {
+      // This is the pairing that is easy to miss and expensive to get wrong: a link
+      // or a label in the primary colour sits directly on the page, with no filled
+      // shape behind it, so it is held to the body text bar rather than to whatever
+      // a button happens to manage.
+      const variables = variablesFor(scheme)
+      const text = toHex(token('--mantine-color-blue-text', variables))
+      const body = toHex(token('--mantine-color-body', variables))
+      const ratio = contrast(text, body)
+
+      expect(
+        ratio,
+        `primary-coloured text in ${scheme} is ${text} on the page's ${body}, which is ` +
+          `${ratio.toFixed(2)}:1. A bright primary is unusable as text, whatever it is ` +
+          'like as a fill.',
+      ).toBeGreaterThanOrEqual(AA_BODY_TEXT)
+    },
+  )
+
+  it.each<Scheme>(['light', 'dark'])(
+    'code text, and primary-coloured text, both reach AA on the code surface in %s',
+    (scheme) => {
+      // The surfaces are named as the tokens `code-block.module.css` uses, so this
+      // fails if that file and the theme drift apart. jsdom cannot resolve a CSS
+      // module's background back to a value, which is why they are named here.
+      const variables = variablesFor(scheme)
+      const surfaceToken = scheme === 'light' ? '--mantine-color-gray-2' : '--mantine-color-dark-6'
+      const surface = toHex(token(surfaceToken, variables))
+
+      const code = toHex(token('--mantine-color-text', variables))
+      const codeRatio = contrast(code, surface)
+      const primary = toHex(token('--mantine-color-blue-text', variables))
+      const primaryRatio = contrast(primary, surface)
+
+      expect(
+        codeRatio,
+        `code text in ${scheme} is ${code} on the code surface ${surface}, which is ` +
+          `${codeRatio.toFixed(2)}:1.`,
+      ).toBeGreaterThanOrEqual(AA_BODY_TEXT)
+
+      expect(
+        primaryRatio,
+        `primary-coloured text in ${scheme} is ${primary} on the code surface ` +
+          `${surface}, which is ${primaryRatio.toFixed(2)}:1.`,
+      ).toBeGreaterThanOrEqual(AA_BODY_TEXT)
+    },
+  )
+
+  it('the code block has a visible edge against the page in either scheme', () => {
+    // Not a contrast requirement — WCAG asks nothing of a decorative hairline. It is
+    // here because a code block whose surface differs from the page by 1.04:1 is
+    // legible and still does not read as a block, which is its own failure. The edge
+    // is asserted rather than the fill, because in a dark scheme a fill one step from
+    // the page is barely a fill at all: the boundary has to come from the border.
+    for (const scheme of ['light', 'dark'] satisfies Scheme[]) {
+      const variables = variablesFor(scheme)
+      const edgeToken = scheme === 'light' ? '--mantine-color-gray-3' : '--mantine-color-dark-4'
+      const edge = token(edgeToken, variables)
+      const body = toHex(token('--mantine-color-body', variables))
+      const ratio = contrast(edge, body)
+
+      expect(
+        ratio,
+        `the code block's edge in ${scheme} is ${edge} against a page of ${body}, which ` +
+          `is ${ratio.toFixed(2)}:1 — too close to see where the code stops.`,
+      ).toBeGreaterThan(1.3)
+    }
+  })
 
   it('the active sidebar row reaches AA in either scheme', () => {
     // Read from the theme rather than from a rendered row: these are plain style
