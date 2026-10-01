@@ -52,6 +52,82 @@
             "text": "Getting a recall answer roughly right counts. The point is to find the gaps, not to pass."
           }
         ]
+      },
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "Pick your way back to it"
+      },
+      {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "prompt": "Which step comes first when you solve 2x + 3 = 11?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Add four to both sides",
+                "feedback": "That is the second move. It only works once the 3 is off both sides."
+              },
+              {
+                "id": "b",
+                "text": "Subtract three from both sides",
+                "feedback": "Exactly that. Take the 3 off first and the term x is left standing alone."
+              },
+              {
+                "id": "c",
+                "text": "Divide both sides by two",
+                "feedback": "You cannot divide yet, because there is still a 3 sitting on top of x."
+              }
+            ],
+            "correctOptionId": "b",
+            "explanation": "Undo addition before you undo multiplication. Doing it the other way round changes what the 2 is multiplying."
+          },
+          {
+            "id": "q2",
+            "prompt": "Your answer does not check out when you put it back in. What do you check first?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Whether every step was reversible",
+                "feedback": "Yes. Every step has to be reversible, or the equation changed meaning somewhere."
+              },
+              {
+                "id": "b",
+                "text": "Whether the answer is whole",
+                "feedback": "Whether the answer is a whole number is worth knowing, but it comes after this."
+              },
+              {
+                "id": "c",
+                "text": "Whether both sides still match",
+                "feedback": "They should match. If they do not, the mistake is earlier than the last line."
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "Check that every step was reversible, then put the answer back on both sides."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "Now say it back, from memory"
+      },
+      {
+        "type": "recall",
+        "id": "rc1",
+        "prompt": "In your own words, why do you undo addition before you undo multiplication?"
+      },
+      {
+        "type": "recall",
+        "id": "rc2",
+        "prompt": "In your own words, what makes a step reversible?"
+      },
+      {
+        "type": "recall",
+        "id": "rc3",
+        "prompt": "In your own words, what do you do when both sides stop matching?"
       }
     ]
   },

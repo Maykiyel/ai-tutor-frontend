@@ -92,6 +92,76 @@ export const attemptResultWithRecordResponse = {
 }
 
 /**
+ * The hands-on lesson's one recall, answered and graded. Paired with
+ * `hands-on-setting-up-the-practice-set.json`: that lesson carries steps and a
+ * recall and no quiz, so this result has exactly one graded answer and no steps
+ * entry, which is what a lesson with a checklist and one prompt comes back as.
+ */
+export const handsOnAttemptResultResponse = {
+  perAnswer: [
+    {
+      type: 'recall',
+      id: 'rc1',
+      correct: true,
+      feedback:
+        'A good answer says: A sentence has no symbols to get wrong, so the equation has nothing to be inconsistent with. Compare yours against two things: - Names the sentence as plain words - Says the equation only translates what the sentence already said',
+    },
+  ],
+  recordCandidate: null,
+  glossaryCandidates: [],
+}
+
+/**
+ * The review lesson answered in full: both quiz questions and all three recall
+ * prompts. A review mixes several recall prompts, so this is what proves the
+ * reader gives every one of them its own feedback rather than the first one and
+ * a summary.
+ *
+ * `rc2` comes back wrong on purpose. A review is for finding gaps, so a result
+ * where everything is right is the one a learner learns nothing from.
+ */
+export const reviewAttemptResultResponse = {
+  perAnswer: [
+    {
+      type: 'quiz',
+      id: 'q1',
+      correct: true,
+      feedback: 'Exactly that. Take the 3 off first and the term x is left standing alone.',
+    },
+    {
+      type: 'quiz',
+      id: 'q2',
+      correct: false,
+      feedback:
+        'Check that every step was reversible before you check the arithmetic. An irreversible step is where the equation quietly changed meaning.',
+    },
+    {
+      type: 'recall',
+      id: 'rc1',
+      correct: true,
+      feedback:
+        'A good answer says: Because the 3 is added to the whole of 2x, so it has to come off before the 2 stops multiplying. Compare yours against two things: - Says the 3 is added to the whole left side - Says the 2 multiplies whatever is left',
+    },
+    {
+      type: 'recall',
+      id: 'rc2',
+      correct: false,
+      feedback:
+        'A good answer says: Every step you can undo has an inverse: what you did can be done the other way round, on both sides. Yours did not name the inverse, so it is a gap worth one more pass through the first lesson.',
+    },
+    {
+      type: 'recall',
+      id: 'rc3',
+      correct: true,
+      feedback:
+        'A good answer says: Put the answer back into both sides and see whether they still read the same. If they do not, the mistake is earlier than the last line you wrote.',
+    },
+  ],
+  recordCandidate: null,
+  glossaryCandidates: [],
+}
+
+/**
  * Every graded answer marked wrong, including one the learner actually got right.
  * The lesson it goes with is the same one, so the only way to tell the two apart is
  * that the reader takes the verdict from what came back rather than recomputing it
