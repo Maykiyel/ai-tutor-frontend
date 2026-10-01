@@ -31,6 +31,8 @@ Use `pnpm check` before declaring work done. Individual steps: `pnpm typecheck`,
 
 **Style.** Prettier, single quotes, no semicolons, trailing commas, 100 column width. Oxlint enforces rules-of-hooks. Both run in CI alongside typecheck, tests, and the build.
 
+**Commits.** Conventional Commits, lowercase, short subject line. Do not append `Co-Authored-By` trailers or any other attribution trailer to commit messages.
+
 ## Agent skills
 
 ### Issue tracker
