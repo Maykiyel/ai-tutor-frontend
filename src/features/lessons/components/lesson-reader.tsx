@@ -16,6 +16,7 @@ import {
 } from '../schemas/lesson-schema'
 import { BackToLessonsLink, LessonHeaderView } from './lesson-header'
 import { LessonSourceList } from './lesson-source-list'
+import { LessonSubmitPanel } from './lesson-submit-panel'
 
 export function LessonReader() {
   const { lessonId = '' } = useParams()
@@ -38,7 +39,7 @@ export function LessonReader() {
     )
   }
 
-  return <LessonFrame lesson={query.data} />
+  return <LessonFrame lesson={query.data} lessonId={lessonId} />
 }
 
 /**
@@ -46,7 +47,7 @@ export function LessonReader() {
  * app, or one with a broken block, still renders everything the app can read.
  * See ADR-0002.
  */
-function LessonFrame({ lesson }: { lesson: ParsedLessonResponse }) {
+function LessonFrame({ lesson, lessonId }: { lesson: ParsedLessonResponse; lessonId: string }) {
   const { blocks, skipped } = parseLessonBlocks(lesson.lesson.blocks)
   const isNewerThanApp = lesson.lesson.schemaVersion > SUPPORTED_SCHEMA_VERSION
 
@@ -68,6 +69,15 @@ function LessonFrame({ lesson }: { lesson: ParsedLessonResponse }) {
               citations resolve against, so the foot of the lesson is where the
               learner looks when they want to check a claim. */}
           <LessonSourceList />
+
+          {/*
+              One submit action for the whole lesson, last, after every practice
+              block has been read and answered. It receives the parsed blocks and
+              nothing else: what a practice block *is* is the submit panel's business,
+              not the frame's, so a new block type is a change in one file rather than
+              in the reader as well.
+          */}
+          <LessonSubmitPanel lessonId={lessonId} blocks={blocks} />
         </Stack>
       </Container>
     </LessonProvider>

@@ -1,0 +1,148 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 6,
+    "kind": "hands-on",
+    "slug": "answers-and-the-checklist",
+    "title": "Answers and the checklist",
+    "skill": "Work one two-step equation, and say in your own words what makes the order of the two moves matter.",
+    "missionLink": "This is where the practice set stops feeling arbitrary: you work down the checklist, then say why the order was the order.",
+    "minutes": 9,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It does both moves one at a time and says why the order between them is fixed."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Tick the checklist as you go, answer the three questions, and write the two prompts from memory. Everything you put here is sent as one attempt at the end of the lesson."
+          }
+        ]
+      },
+      {
+        "type": "steps",
+        "title": "One equation, end to end",
+        "items": [
+          {
+            "id": "s1",
+            "instruction": "Write the problem as a sentence before you write any symbols.",
+            "check": "One sentence in front of you with no equals sign anywhere in it."
+          },
+          {
+            "id": "s2",
+            "instruction": "Name the unknown with one letter, and write what it measures next to it.",
+            "check": "A single letter and a plain phrase sit side by side."
+          },
+          {
+            "id": "s3",
+            "instruction": "Undo one operation, then check that both sides still read the same.",
+            "check": "Both sides match after the move, so the equation is still true."
+          }
+        ]
+      },
+      {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "prompt": "You have worked one move and the equation still refuses to solve itself. What now?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Undo the operation you just performed",
+                "feedback": "Exactly that. The way back is the inverse of the move you have already made."
+              },
+              {
+                "id": "b",
+                "text": "Divide both sides by the unknown",
+                "feedback": "You cannot divide by x before x stands alone, so this leaves you with two unknowns."
+              },
+              {
+                "id": "c",
+                "text": "Add the unknown across to both sides",
+                "feedback": "Moving x across puts the unknown on both sides, which is the case you were told to stop at."
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "Every step you make has an inverse, so undoing your last move is always available and is never a guess."
+          },
+          {
+            "id": "q2",
+            "prompt": "Which sentence explains why the two moves come in that order?",
+            "options": [
+              {
+                "id": "a",
+                "text": "The order changes what the number multiplies",
+                "feedback": "That is it. The 2 multiplies whatever is left, so the 3 has to go first."
+              },
+              {
+                "id": "b",
+                "text": "The order changes the letter you start with",
+                "feedback": "The letter does not change either way round. x is x in both orders."
+              },
+              {
+                "id": "c",
+                "text": "The order changes how fast you write the work",
+                "feedback": "The order is not about pace. Doing it the other way round gives a different answer."
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "In 2x + 3 = 11 the 2 multiplies the whole left side. Take the 3 off first and it multiplies an x; the other way round it multiplies 7."
+          },
+          {
+            "id": "q3",
+            "prompt": "You are partway down the checklist and one step is making no sense. Which one?",
+            "options": [
+              {
+                "id": "a",
+                "text": "The one you understand least so far",
+                "feedback": "Right. The checklist exists to surface the step you have not got, not the one you have."
+              },
+              {
+                "id": "b",
+                "text": "The one you understand most so far",
+                "feedback": "The step you already have is not the one that needs your attention."
+              },
+              {
+                "id": "c",
+                "text": "The one whose instruction runs longest",
+                "feedback": "A long instruction is a writing problem, not a maths one. Length tells you nothing here."
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "Work down the list, and when one step refuses, that step is the one to slow down on. Ticking a box you have not understood is how a practice set stops teaching anybody anything."
+          }
+        ]
+      },
+      {
+        "type": "recall",
+        "id": "rc1",
+        "prompt": "In your own words, why does the order of the two moves matter?"
+      },
+      {
+        "type": "recall",
+        "id": "rc2",
+        "prompt": "In your own words, what makes a step reversible?"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "When you are done, send what you have. The checklist goes with it as a record of how far you got, and it is not graded. A question you skipped is left out rather than sent blank, so a skipped answer is never scored as though you had answered it."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}
