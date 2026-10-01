@@ -61,7 +61,18 @@ export const paths = {
   },
 } as const
 
-export const navigation = [
+export type NavItem = {
+  label: string
+  to: string
+}
+
+export type NavSection = {
+  label: string
+  items: NavItem[]
+}
+
+/** The sections that are not inside a workspace. */
+export const appNavigation: NavSection[] = [
   {
     label: 'Main',
     items: [
@@ -75,4 +86,29 @@ export const navigation = [
       },
     ],
   },
-] as const
+]
+
+/**
+ * A workspace is one topic, so every screen below belongs to the workspace in
+ * the path — see GLOSSARY.md. The sections are built from that id rather than
+ * declared once, which is what keeps the sidebar honest about where the learner
+ * is. Urls still come from `paths` above; none is written by hand.
+ */
+export function getWorkspaceNavigation(workspaceId: string): NavSection[] {
+  return [
+    {
+      label: 'Workspace',
+      items: [
+        { label: 'Home', to: paths.workspaces.home.getHref(workspaceId) },
+        { label: 'Lessons', to: paths.workspaces.lessons.getHref(workspaceId) },
+        { label: 'Learning records', to: paths.workspaces.records.getHref(workspaceId) },
+        { label: 'Glossary', to: paths.workspaces.glossary.getHref(workspaceId) },
+        { label: 'Reference docs', to: paths.workspaces.references.getHref(workspaceId) },
+        // The domain word is Source; the table and the path are `resources`.
+        { label: 'Sources', to: paths.workspaces.resources.getHref(workspaceId) },
+        { label: 'Reviews', to: paths.workspaces.reviews.getHref(workspaceId) },
+        { label: 'Settings', to: paths.workspaces.settings.getHref(workspaceId) },
+      ],
+    },
+  ]
+}

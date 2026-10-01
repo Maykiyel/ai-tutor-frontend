@@ -1,15 +1,12 @@
-import { Stack, Text, Title } from '@mantine/core'
+import { redirect } from 'react-router'
 
-export function HomePage() {
-  return (
-    <Stack gap="xs" py="xl">
-      <Title order={1}>AI tutor</Title>
-      <Text c="dimmed" maw={640}>
-        The application shell and authentication are ready. Build the first feature under
-        src/features and wire its route in src/app/router.tsx. See
-        docs/AI-TUTOR-FRONTEND-ONBOARDING.md for the build order, and docs/lesson-schema.json for
-        the lesson contract.
-      </Text>
-    </Stack>
-  )
+import { paths } from '@/config/paths'
+
+/**
+ * The app root is not a screen. Signing in, registering, and opening the app at
+ * `/` all belong on the workspace list — see the landing route in
+ * docs/AI-TUTOR-FRONTEND-ONBOARDING.md.
+ */
+export function homeRedirect() {
+  return redirect(paths.workspaces.root.getHref())
 }

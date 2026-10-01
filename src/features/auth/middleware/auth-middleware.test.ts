@@ -74,13 +74,13 @@ describe('auth middleware', () => {
   })
 
   describe('redirectAuthenticated', () => {
-    it('sends signed-in visitors back to home', () => {
+    it('sends signed-in visitors to the workspace list', () => {
       useAuthStore.setState({ user, token: 'a-token', role: null })
 
       const { response, next } = run(redirectAuthenticated, 'http://localhost/login')
 
       expect(response?.status).toBe(302)
-      expect(response?.headers.get('Location')).toBe(paths.home.getHref())
+      expect(response?.headers.get('Location')).toBe(paths.workspaces.root.getHref())
       expect(next).not.toHaveBeenCalled()
     })
 
