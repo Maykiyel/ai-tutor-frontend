@@ -9,6 +9,29 @@
       content="A ready-to-build React frontend starter for hackathon projects."
     />
     <title>Hackathon Starter</title>
+    <script>
+      // Set the colour scheme before the first paint. Mantine resolves every colour
+      // through `:root[data-mantine-color-scheme]`, and without this the attribute
+      // only appears once React has mounted, so a learner whose system is set to
+      // dark gets a page painted with the light palette first and then repainted.
+      // This mirrors what <ColorSchemeScript /> emits, inlined because this is a
+      // plain Vite SPA with no server template to render it into.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('mantine-color-scheme-value') || 'auto'
+          var preferred = window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
+          document.documentElement.setAttribute(
+            'data-mantine-color-scheme',
+            stored === 'auto' ? preferred : stored,
+          )
+        } catch (error) {
+          // Private browsing can make localStorage throw. The provider sets the
+          // attribute on mount regardless, so failing here is not fatal.
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
