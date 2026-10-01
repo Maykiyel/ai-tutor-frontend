@@ -1,0 +1,34 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 13,
+    "kind": "concept",
+    "slug": "table-ragged",
+    "title": "A table the model got slightly wrong",
+    "skill": "Read a table that lost a cell and gained another, and still get the method out of it.",
+    "missionLink": "The practice set has a worked example in this shape. It is worth being able to read one that is a little off.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It is here so the lesson parses; the table is not from it."
+    },
+    "blocks": [
+      {
+        "type": "table",
+        "headers": ["Step", "Move", "Check"],
+        "rows": [
+          ["s1", "Subtract 4 from both sides", "x + 3 = 7"],
+          ["s2", "Divide by 2"],
+          ["s3", "Check the answer", "Substitute x = 2", "and both sides read 7"]
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 10,
+    "kind": "concept",
+    "slug": "figure-wide",
+    "title": "A figure wider than the column",
+    "skill": "Read a wide drawing without losing the column of prose beside it.",
+    "missionLink": "The practice set has a table of common mistakes, and it is wider than the page. This is that table, drawn.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It prints the comparison wide, on purpose."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This drawing is much wider than the text column. It has to scroll inside itself."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "kind": "svg",
+        "source": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 200\" width=\"1600\" height=\"200\"><rect x=\"0\" y=\"0\" width=\"1600\" height=\"200\" fill=\"none\" stroke=\"currentColor\"/><text x=\"40\" y=\"110\" font-size=\"16\">a wide table drawn as a diagram</text></svg>",
+        "alt": "A wide table drawn as a diagram",
+        "caption": "Scroll sideways to read the last column."
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 9,
+    "kind": "concept",
+    "slug": "figure-svg-hostile",
+    "title": "A figure the model was talked into",
+    "skill": "Read a lesson whose diagram tried to run code, and notice that it did not.",
+    "missionLink": "Nothing in the mission needs this. It is here because the web pages the model reads are not written by anyone you would trust with your browser.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It is here so the lesson parses; this figure is not from it."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The paragraph before the figure renders."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "kind": "svg",
+        "source": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 100\" onload=\"window.__lessonPwned = true\"><script>window.__lessonPwned = true</script><style>body { display: none }</style><rect x=\"0\" y=\"0\" width=\"200\" height=\"100\" fill=\"none\" stroke=\"currentColor\" style=\"color: #ff0000; padding: 40px; font-size: 40px\" onmouseover=\"window.__lessonPwned = true\"/><a href=\"javascript:window.__lessonPwned = true\"><text x=\"20\" y=\"55\" font-size=\"12\">a bar chart the payload made</text></a><image href=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxzY3JpcHQ+d2luZG93Ll9sZXNzb25Qd25lZCA9IHRydWU8L3NjcmlwdD48L3N2Zz4=\" width=\"40\" height=\"40\"/></svg>",
+        "alt": "A bar chart the payload tried to make run code",
+        "caption": "The chart is the only part of this figure that is a chart."
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The paragraph after the figure renders."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

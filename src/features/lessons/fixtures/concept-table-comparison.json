@@ -1,0 +1,70 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 12,
+    "kind": "concept",
+    "slug": "table-comparison",
+    "title": "Four ways to undo a step",
+    "skill": "Choose which inverse operation to use, and know what each one costs.",
+    "missionLink": "You keep undoing the same step in the same way and then losing track. This is the whole set on one screen.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It tabulates the four moves and their failure modes."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Every step you undo has a cost. Read across a row before you commit to it."
+          }
+        ]
+      },
+      {
+        "type": "table",
+        "headers": ["Method", "What it does", "When it stops working", "How you notice"],
+        "rows": [
+          [
+            "Work backwards",
+            "Start from the answer and undo the operations in reverse order.",
+            "You have to know the answer, which is the thing you are trying to find.",
+            "You find yourself writing the answer before you have earned it."
+          ],
+          [
+            "Isolate the term",
+            "Move everything that is not the term to the other side, one operation at a time.",
+            "The term appears twice, so there is nothing to isolate.",
+            "You subtract a letter from both sides and the letter survives."
+          ],
+          [
+            "Balance both sides",
+            "Apply the same operation to both sides and the equality holds.",
+            "The operation changes what one side means, such as squaring a side that may be negative.",
+            "The two sides stop being the same kind of thing."
+          ],
+          [
+            "Guess and check",
+            "Try a number, see what comes out, and adjust from there.",
+            "The step is slow, and a learner doing forty of them feels every one.",
+            "You find yourself trying the same number twice in a row."
+          ],
+          [
+            "Graph it",
+            "Plot both sides and look for where they cross.",
+            "The crossing is between two whole numbers and the graph is too coarse to show it.",
+            "Your plotted points are two and your answer is two and a half."
+          ]
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

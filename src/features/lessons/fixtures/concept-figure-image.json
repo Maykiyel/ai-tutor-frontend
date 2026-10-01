@@ -1,0 +1,52 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 7,
+    "kind": "concept",
+    "slug": "figure-image",
+    "title": "Two ways to see the same step",
+    "skill": "Read a picture for the step it shows, and tell when a picture cannot be shown at all.",
+    "missionLink": "You have been solving these by moving symbols. This is the same move drawn out, for the days when the algebra is going in circles.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It draws the same equation as a jump on a number line."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "The move, drawn"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Adding 4 to both sides is one move, and a number line shows where it lands."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "kind": "image",
+        "source": "https://example.org/two-step-number-line.png",
+        "alt": "A number line with 2, 4, and 6 marked, and an arrow from 2 to 4.",
+        "caption": "Every step moves by the same amount."
+      },
+      {
+        "type": "figure",
+        "kind": "image",
+        "source": "javascript:window.__lessonPwned = true",
+        "alt": "A screenshot the payload tried to make a link"
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

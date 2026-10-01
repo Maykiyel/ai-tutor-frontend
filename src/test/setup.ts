@@ -49,3 +49,22 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }),
   })
 }
+
+// jsdom implements no SVG text measurement, so mermaid's layout cannot size a
+// label without it. These are stubs for what jsdom never had, in the same spirit
+// as the two above: the diagram is drawn from real mermaid output, with a fixed
+// width per measured string, so a test sees the real markup rather than a mocked
+// diagram. Nothing in the app depends on these being absent.
+const { SVGElement } = globalThis as unknown as {
+  SVGElement: { prototype: Record<string, unknown> }
+}
+
+if (SVGElement && !('getComputedTextLength' in SVGElement.prototype)) {
+  SVGElement.prototype.getComputedTextLength = function getComputedTextLength() {
+    return 40
+  }
+
+  SVGElement.prototype.getBBox = function getBBox() {
+    return { x: 0, y: 0, width: 40, height: 20 }
+  }
+}
