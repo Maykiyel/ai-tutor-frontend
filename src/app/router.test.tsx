@@ -6,7 +6,10 @@ import { getWorkspaceNavigation, paths } from '@/config/paths'
 import { login } from '@/features/auth/api/auth-api'
 import { useAuthStore } from '@/features/auth/store'
 import type { User } from '@/features/auth/types'
+import { getMission } from '@/features/workspace/api/mission-api'
 import { getWorkspace, listWorkspaces } from '@/features/workspace/api/workspace-api'
+import { missionResponse } from '@/features/workspace/fixtures/mission-fixtures'
+import { missionResponseSchema } from '@/features/workspace/schemas/mission-schema'
 import {
   workspaceResponse,
   workspacesResponse,
@@ -24,6 +27,7 @@ import { routes } from './router'
 // middleware, shell, screens — is the real thing.
 vi.mock('@/features/auth/api/auth-api')
 vi.mock('@/features/workspace/api/workspace-api')
+vi.mock('@/features/workspace/api/mission-api')
 
 const user: User = { username: 'ada', email: 'ada@example.com' }
 const workspaces = workspaceListResponseSchema.parse(workspacesResponse)
@@ -54,6 +58,7 @@ describe('router', () => {
       ...algebra,
       id: workspaceId,
     }))
+    vi.mocked(getMission).mockResolvedValue(missionResponseSchema.parse(missionResponse))
   })
 
   it('sends a signed-in learner from the app root to the workspace list', async () => {
