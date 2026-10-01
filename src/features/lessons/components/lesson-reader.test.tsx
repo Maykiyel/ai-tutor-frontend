@@ -9,6 +9,7 @@ import { getLesson } from '../api/lesson-api'
 import {
   conceptFixture,
   figureImageFixture,
+  handsOnFixture,
   figureMermaidFixture,
   figureSvgFixture,
   hostileSvgFixture,
@@ -16,6 +17,7 @@ import {
   malformedBlockFixture,
   newerVersionFixture,
   quizFixture,
+  recallFixture,
   reviewFixture,
   raggedTableFixture,
   segmentsFixture,
@@ -89,6 +91,79 @@ function optionName(option: HTMLElement): string {
  */
 function optionSignature(element: Element): string {
   return element.outerHTML.replace(/\sid="[^"]*"/g, '').replace(/>[^<>]+</g, '><')
+}
+
+/**
+ * One block of each of the nine types `docs/lesson-schema.json` fixes, in the
+ * order the contract lists them. Hand-written rather than read from a fixture,
+ * because the claim being tested is about the contract's set rather than about
+ * any one stored lesson, and every word in it is a word a learner can be shown.
+ */
+function oneBlockOfEveryType(): unknown[] {
+  return [
+    {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'A paragraph carrying one sentence.' }],
+    },
+    { type: 'heading', level: 2, text: 'A section heading' },
+    { type: 'callout', tone: 'note', content: [{ type: 'text', text: 'A note about the move.' }] },
+    { type: 'code', language: 'python', code: 'x = 2' },
+    {
+      type: 'figure',
+      kind: 'image',
+      source: 'https://example.org/moves.png',
+      alt: 'A bar chart of the two moves.',
+    },
+    {
+      type: 'table',
+      headers: ['Method', 'What it does'],
+      rows: [['Work backwards', 'Starts from the answer']],
+    },
+    {
+      type: 'steps',
+      title: 'Set up problem one, end to end',
+      items: [{ id: 's1', instruction: 'Name the unknown.', check: 'One letter is written down.' }],
+    },
+    {
+      type: 'quiz',
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'Which move comes first?',
+          options: [
+            { id: 'a', text: 'Add four to both sides', feedback: 'That is the second move.' },
+            { id: 'b', text: 'Subtract three from both sides', feedback: 'Exactly that.' },
+            { id: 'c', text: 'Divide both sides by two', feedback: 'You cannot divide yet.' },
+          ],
+          correctOptionId: 'b',
+          explanation: 'Undo addition before multiplication.',
+        },
+      ],
+    },
+    { type: 'recall', id: 'rc1', prompt: 'Why undo addition first?' },
+  ]
+}
+
+type StepsPayload = {
+  title: string
+  items: { id: string; instruction: string; check: string }[]
+}
+
+/**
+ * The checklist as the payload wrote it, read from the fixture rather than from
+ * the screen, so a completeness assertion compares the render against the lesson
+ * that was sent instead of restating whatever the renderer happened to produce.
+ */
+function handsOnSteps(): StepsPayload {
+  const block = handsOnFixture.lesson.blocks.find(
+    (candidate) => (candidate as { type?: string }).type === 'steps',
+  ) as StepsPayload | undefined
+
+  if (!block) {
+    throw new Error('the hands-on fixture carries no steps block')
+  }
+
+  return block
 }
 
 function renderReader(lessonId = LESSON_ID) {
@@ -270,33 +345,41 @@ describe('LessonReader', () => {
     expect(warnings[0]).toContain('sandbox')
   })
 
-  it('reads a block type the contract defines but this build does not render yet', async () => {
-    // `recall` is one of the contract's nine types and has no component yet. It
-    // must behave exactly like a genuinely unknown type rather than breaking the
-    // lesson, so that a block arriving before its ticket is not a special case.
+  it('renders every block type the contract defines, so nothing in a lesson is ever skipped for want of a component', async () => {
+    // One block of each of the nine types the contract fixes, in one lesson. A
+    // type the app has no component for renders nothing and is counted as
+    // skipped, so this is the test that says the build is not behind the format:
+    // if a contract type ever loses its registry entry again, this lesson reads
+    // with a gap in it and the learner is told.
     vi.mocked(getLesson).mockResolvedValue({
       ...conceptFixture,
-      lesson: {
-        ...conceptFixture.lesson,
-        blocks: [
-          {
-            type: 'paragraph',
-            content: [{ type: 'text', text: 'The paragraph before the recall block.' }],
-          },
-          { type: 'recall', id: 'rc1', prompt: 'What undoes adding 4 to both sides?' },
-        ],
-      },
+      lesson: { ...conceptFixture.lesson, blocks: oneBlockOfEveryType() },
     })
 
     renderReader()
 
+    await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' })
+
+    for (const probe of [
+      'A paragraph carrying one sentence.',
+      'A section heading',
+      'A note about the move',
+      'x = 2',
+      'Method',
+      'Set up problem one, end to end',
+      'Which move comes first?',
+      'Why undo addition first?',
+    ]) {
+      expect(screen.getByText(probe, { exact: false })).toBeInTheDocument()
+    }
+
+    // The figure is named by its alt text rather than by words in the document,
+    // because that is how a learner who cannot see it is told what it shows.
+    expect(screen.getByRole('img', { name: 'A bar chart of the two moves.' })).toBeInTheDocument()
+
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('The paragraph before the recall block.')).toBeInTheDocument()
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toHaveTextContent('One part of this lesson could not be shown')
+      screen.queryByRole('status', { name: 'Part of this lesson is missing' }),
+    ).not.toBeInTheDocument()
   })
 
   it('skips a malformed block, keeps the rest, and tells the learner something was skipped', async () => {
@@ -344,6 +427,8 @@ describe('LessonReader', () => {
     ['a comparison table', tableComparisonFixture, 'Four ways to undo a step'],
     ['a table the model got wrong', raggedTableFixture, 'A table the model got slightly wrong'],
     ['a quiz with instant feedback', quizFixture, 'Checking the two moves'],
+    ['a recall prompt', recallFixture, 'Saying it in your own words'],
+    ['a hands-on checklist', handsOnFixture, 'Setting up the practice set'],
   ])(
     'takes every colour from a theme token in %s, so the lesson reads in either scheme',
     async (_name, fixture, heading) => {
@@ -1063,6 +1148,241 @@ describe('LessonReader', () => {
         .getAllByRole('radio')
         .filter((o) => (o as HTMLInputElement).checked),
     ).toHaveLength(1)
+  })
+
+  it('shows every recall prompt as a labelled text area a learner can type into', async () => {
+    vi.mocked(getLesson).mockResolvedValue(recallFixture)
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' }),
+    ).toBeInTheDocument()
+
+    // Two prompts, two text areas, each named by its own words. A recall block
+    // whose prompt is not the accessible name of its control is a prompt a
+    // learner using a screen reader cannot tie to the box they are filling in.
+    const boxes = screen.getAllByRole('textbox')
+    expect(boxes).toHaveLength(2)
+    expect(boxes[0]).toHaveAccessibleName(
+      'In your own words, why do you undo addition before you undo multiplication?',
+    )
+    expect(boxes[1]).toHaveAccessibleName('In your own words, what makes an equation checkable?')
+
+    // A real association, not a placeholder: a `<label for>` pointing at the
+    // control, so clicking the words focuses it and the browser's own
+    // association is what a screen reader reads.
+    const prompt = screen.getByText(
+      'In your own words, why do you undo addition before you undo multiplication?',
+    )
+    expect(prompt.tagName).toBe('LABEL')
+    expect(prompt).toHaveAttribute('for', boxes[0].id)
+
+    // Both prompts start empty: there is no draft anybody else left behind.
+    expect(boxes[0]).toHaveValue('')
+    expect(boxes[1]).toHaveValue('')
+  })
+
+  it('puts no expected answer and no rubric anywhere in the lesson, before the learner submits', async () => {
+    // A response that leaked them, which is what the contract says must not
+    // happen. The reader is not the layer that removes them, so this asserts the
+    // page rather than the payload: whatever arrives, no expected answer and no
+    // rubric line reaches the document while the learner is reading.
+    const modelAnswer =
+      'Because 2 is multiplying the whole left side, so the 3 has to come off first.'
+    const rubric = ['Mentions multiplication by 2', 'Mentions order matters']
+
+    vi.mocked(getLesson).mockResolvedValue({
+      ...recallFixture,
+      lesson: {
+        ...recallFixture.lesson,
+        blocks: [
+          {
+            type: 'recall',
+            id: 'rc1',
+            prompt: 'Why undo addition first?',
+            modelAnswer,
+            rubric,
+          },
+        ],
+      },
+    })
+
+    const { container } = renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' }),
+    ).toBeInTheDocument()
+
+    // The prompt still renders and is still answerable.
+    expect(screen.getByRole('textbox')).toHaveAccessibleName('Why undo addition first?')
+
+    // The answer key is not in the document at all: not visible, not hidden, not in
+    // a `title`, not in an attribute, not in the markup. A rubric line a learner
+    // can read is the grading scheme for a question they have not been asked yet.
+    //
+    // Compared against every character of text the page shows and every character
+    // of its markup, rather than by querying for each string as an element's
+    // whole content. A renderer that spliced the answer into a sentence, or split
+    // it across two nodes, would slip past a query for the string on its own and
+    // past an assertion about one element.
+    const shown = document.body.textContent ?? ''
+    expect(shown).not.toContain(modelAnswer)
+    for (const line of rubric) {
+      expect(shown).not.toContain(line)
+    }
+    expect(container.innerHTML).not.toContain(modelAnswer)
+    expect(container.innerHTML).not.toContain('rubric')
+    expect(container.innerHTML).not.toContain('modelAnswer')
+  })
+
+  it('keeps a typed recall answer when the lesson reads further on and comes back', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(recallFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' })
+
+    const box = screen.getAllByRole('textbox')[0]
+    const answer = 'Because two is multiplying the whole left side, not just the x.'
+
+    // Typed one character at a time. Every keystroke changes the answer, which is
+    // a render of this block each time — so if the state the block keeps were
+    // cleared on anything other than the block going away, the second character
+    // would be typed into an empty box and the sentence would arrive one letter at
+    // a time in the history and nothing like this in the field.
+    await learner.type(box, answer)
+    expect(box).toHaveValue(answer)
+
+    // Read past it: the closing paragraph is below, which is where the learner
+    // goes for the next minute.
+    const last = screen.getByText('Read them back to yourself afterwards.', { exact: false })
+    window.scrollTo(0, last.getBoundingClientRect().bottom + window.scrollY)
+    expect(last).toBeVisible()
+
+    // Come back to the first prompt by tabbing from the top of the lesson rather
+    // than by reaching for the element, the way a learner who has scrolled would
+    // get there. Focusing it is a render of the block, and losing focus again is
+    // another, so this is the round trip the answer has to survive.
+    const second = screen.getAllByRole('textbox')[1]
+    await learner.click(second)
+    await learner.tab({ shift: true })
+    expect(box).toHaveFocus()
+    expect(box).toHaveValue(answer)
+
+    // And the second prompt is still its own empty box: two prompts in one lesson
+    // are two answers, not one answer written twice.
+    expect(second).toHaveValue('')
+  })
+
+  it('shows a hands-on lesson as a checklist: a title, an instruction per step, and how the learner knows it is done', async () => {
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' }),
+    ).toBeInTheDocument()
+
+    const { title, items } = handsOnSteps()
+
+    // A checklist, not explanation: one tickable control per step the lesson
+    // wrote, named by its own instruction, and nothing extra.
+    const boxes = screen.getAllByRole('checkbox')
+    expect(boxes).toHaveLength(items.length)
+    for (const item of items) {
+      expect(screen.getByRole('checkbox', { name: item.instruction })).toBeInTheDocument()
+    }
+
+    // Every step says how the learner will know it is done. A step with no check
+    // is a step the learner cannot tell they have finished.
+    for (const item of items) {
+      expect(screen.getByText(item.check, { exact: false })).toBeInTheDocument()
+    }
+
+    // The block's title, and the checklist it introduces is named by it, so a
+    // screen reader can say which list a step belongs to.
+    expect(screen.getByText(title).tagName).toMatch(/^H[1-6]$/)
+    const group = screen.getByRole('group', { name: title })
+    expect(within(group).getAllByRole('checkbox')).toHaveLength(items.length)
+
+    // It is a real checkbox per step rather than a styled div: keyboard operable,
+    // and the answer state is the control's own.
+    for (const box of boxes) {
+      expect(box.tagName).toBe('INPUT')
+      expect((box as HTMLInputElement).type).toBe('checkbox')
+      expect((box as HTMLInputElement).checked).toBe(false)
+    }
+  })
+
+  it('ticks and unticks a step from the keyboard, and reads done as a tick and as words', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' })
+
+    const [first] = handsOnSteps().items
+    const box = screen.getByRole('checkbox', { name: first.instruction })
+    const row = box.closest('label')!
+
+    // Tabbed to rather than focused directly, so this proves a step is reachable
+    // by keyboard at all and not merely operable once focused.
+    for (let presses = 0; presses < 25 && document.activeElement !== box; presses += 1) {
+      await learner.tab()
+    }
+    expect(box).toHaveFocus()
+
+    await learner.keyboard(' ')
+
+    // Space ticks it, and the state is the control's own checkedness — which is
+    // what a screen reader announces, so done is never carried by colour alone.
+    expect(box).toBeChecked()
+    // And in words too, so a learner who cannot perceive the tick at all still
+    // knows where they are in the checklist.
+    expect(row.textContent).toContain('Done')
+
+    // The other steps are untouched: one step's progress is not every step's.
+    const others = screen
+      .getAllByRole('checkbox')
+      .filter((candidate) => candidate !== box) as HTMLInputElement[]
+    expect(others.every((other) => !other.checked)).toBe(true)
+
+    await learner.keyboard(' ')
+
+    expect(box).not.toBeChecked()
+    expect(row.textContent).not.toContain('Done')
+  })
+
+  it('keeps ticked steps when the lesson reads further on and comes back', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' })
+
+    const steps = handsOnSteps()
+    const [first, second] = steps.items
+
+    await learner.click(screen.getByRole('checkbox', { name: first.instruction }))
+    await learner.click(screen.getByRole('checkbox', { name: second.instruction }))
+
+    // Read past the checklist: the warning callout, the code, and the closing
+    // note are all below it.
+    expect(
+      screen.getByText('If your equation needs the unknown on both sides, stop.', { exact: false }),
+    ).toBeInTheDocument()
+
+    // Come back, and the ticks are still where the learner left them.
+    expect(screen.getByRole('checkbox', { name: first.instruction })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: second.instruction })).toBeChecked()
+    expect(
+      (screen.getByRole('checkbox', { name: steps.items[2].instruction }) as HTMLInputElement)
+        .checked,
+    ).toBe(false)
   })
 
   it('lets the learner get back to the lesson list', async () => {

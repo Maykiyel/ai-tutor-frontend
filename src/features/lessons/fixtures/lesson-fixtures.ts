@@ -14,6 +14,7 @@ import conceptFigureWide from './concept-figure-wide.json'
 import conceptMalformedBlock from './concept-malformed-block.json'
 import conceptNewerSchemaVersion from './concept-newer-schema-version.json'
 import conceptQuiz from './concept-quiz.json'
+import conceptRecall from './concept-recall.json'
 import conceptSolvingTwoStepEquations from './concept-solving-two-step-equations.json'
 import conceptTableComparison from './concept-table-comparison.json'
 import conceptTableRagged from './concept-table-ragged.json'
@@ -89,6 +90,14 @@ export const raggedTableFixture = parseLessonResponse(conceptTableRagged)
  * rule and the one the reader must not break by truncating or padding.
  */
 export const quizFixture = parseLessonResponse(conceptQuiz)
+
+/**
+ * Two recall prompts in one lesson, with prose above, between, and below them, so
+ * a test can read past a prompt and come back to it. Neither the model answer nor
+ * the rubric appears anywhere in the file: the lesson response is not allowed to
+ * carry them, so a fixture that did would be a fixture of a contract breach.
+ */
+export const recallFixture = parseLessonResponse(conceptRecall)
 
 /**
  * Keyed by lesson slug so a test that walks the reader by slug reads like a
