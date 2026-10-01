@@ -66,7 +66,14 @@
       {
         "type": "code",
         "language": "python",
-        "code": "def set_up(total: float, each: float) -> str:\n    count = total / each\n    return f'{count:g} groups of {each:g} make {total:g}'"
+        "code": "def set_up(total: float, each: float) -> str:\n    \"\"\"Say the problem as a sentence before you write any symbols on it.\"\"\"\n    count = total / each\n    if each <= 0 or count != int(count):\n        raise ValueError(f'{each:g} does not divide {total:g} evenly, so this page is not set up yet')\n    return f'{count:g} groups of {each:g} make {total:g}'\n\n\ndef read_it_back(total: float, each: float) -> str:\n    return f'{total:g} split into groups of {each:g} is {int(total / each):d} groups, and no symbols were needed to say it.'"
+      },
+      {
+        "type": "figure",
+        "kind": "svg",
+        "source": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 180\" width=\"1600\" height=\"180\"><rect x=\"0\" y=\"0\" width=\"1600\" height=\"180\" fill=\"none\" stroke=\"currentColor\"/><rect x=\"24\" y=\"24\" width=\"360\" height=\"132\" fill=\"none\" stroke=\"currentColor\"/><rect x=\"408\" y=\"24\" width=\"360\" height=\"132\" fill=\"none\" stroke=\"currentColor\"/><rect x=\"792\" y=\"24\" width=\"360\" height=\"132\" fill=\"none\" stroke=\"currentColor\"/><rect x=\"1176\" y=\"24\" width=\"360\" height=\"132\" fill=\"none\" stroke=\"currentColor\"/><text x=\"48\" y=\"96\" font-size=\"16\">problem one: 24 stickers</text><text x=\"432\" y=\"96\" font-size=\"16\">problem two: 30 pencils</text><text x=\"816\" y=\"96\" font-size=\"16\">problem three: 18 cards</text><text x=\"1200\" y=\"96\" font-size=\"16\">problem four: 42 badges</text></svg>",
+        "alt": "Four problem cards laid out side by side, one card per problem on the sheet.",
+        "caption": "The sheet is wider than the column. Scroll sideways to reach problem four."
       },
       {
         "type": "callout",
@@ -77,6 +84,11 @@
             "text": "An equation you can say out loud in plain words is an equation you can solve. If you cannot, it is not finished."
           }
         ]
+      },
+      {
+        "type": "recall",
+        "id": "rc1",
+        "prompt": "In your own words, why does the sentence come before the equation?"
       }
     ]
   },
