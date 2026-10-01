@@ -1,0 +1,52 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 7,
+    "kind": "concept",
+    "slug": "malformed-block",
+    "title": "A lesson with one broken block",
+    "skill": "Keep reading a lesson even when part of it is broken.",
+    "missionLink": "One block in this lesson does not match the contract. The rest of it is still worth your Friday.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "Nothing new here; it is here so the lesson parses."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "Before the gap"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This paragraph is well formed, so it renders."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": []
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This paragraph is well formed too, and it renders like the first one."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

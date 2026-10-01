@@ -1,0 +1,58 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 6,
+    "kind": "concept",
+    "slug": "unknown-block-type",
+    "title": "A lesson the app does not fully understand",
+    "skill": "Read the parts of this lesson that render, and notice the parts that do not.",
+    "missionLink": "The backend generated a block this version of the app has never seen. Reading it should still be possible.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "Nothing new here; it is here so the lesson parses."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "What you can read"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This paragraph is ordinary, so it renders."
+          }
+        ]
+      },
+      {
+        "type": "sandbox",
+        "source": "console.log('a block type this app does not know')",
+        "alt": "A block type the app does not recognise"
+      },
+      {
+        "type": "sandbox",
+        "source": "console.log('the same unknown type a second time')",
+        "alt": "The same unrecognised block type again"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This paragraph renders too. The gap between them is where the unknown block was."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

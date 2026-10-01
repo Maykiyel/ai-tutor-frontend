@@ -1,0 +1,103 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 3,
+    "kind": "concept",
+    "slug": "solving-two-step-equations",
+    "title": "Solving two-step equations",
+    "skill": "Solve an equation that needs two operations, and say why the order does not change the answer.",
+    "missionLink": "Your mission is to get through the practice set before Friday. Almost every problem in it needs this one move.",
+    "minutes": 8,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It works one equation at a time, which is the pace you read at."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "One operation, both sides"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "An equation is a claim that two things are equal. To keep it true, every operation you do to one side has to happen to the other. That is the whole rule, and everything else in this lesson is an application of it."
+          }
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "note",
+        "content": [
+          {
+            "type": "text",
+            "text": "Undo addition before multiplication. You are peeling the equation back to the variable, and the last thing you wrapped on is the first thing you take off."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "level": 3,
+        "text": "Work backwards from the answer"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "If you know the answer, start from it. Reaching for the "
+          },
+          {
+            "type": "term",
+            "termId": 4,
+            "text": "inverse operation"
+          },
+          {
+            "type": "text",
+            "text": " of each step is faster than working forwards, because each step gives you exactly one thing to undo. The result is the same either way."
+          }
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "def solve(two_step: str) -> float:\n    # 3x + 5 = 20\n    value = two_step.split('=')[1]\n    value = float(value) - 5\n    return value / 3\n\n\nprint(solve('3x + 5 = 20'))  # 5.0\n# <script>alert('never markup')</script> is inert text, not markup"
+      },
+      {
+        "type": "callout",
+        "tone": "win",
+        "content": [
+          {
+            "type": "text",
+            "text": "You can check any answer by putting it back in. If both sides come out the same, it was right."
+          }
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "watch-out",
+        "content": [
+          {
+            "type": "text",
+            "text": "Subtracting on one side only breaks the equation. It stops being a claim that two things are equal and starts being two unrelated numbers."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "4": {
+      "term": "inverse operation",
+      "definition": "The operation that undoes another one: subtraction undoes addition, and division undoes multiplication.",
+      "avoid": ["opposite operation", "reverse operation"]
+    }
+  },
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}
