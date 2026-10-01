@@ -117,10 +117,13 @@ every stored lesson.
 
 ## Adding a block later
 
-1. Add the block to `docs/lesson-schema.json` and the lesson writer prompt.
-2. Add a component to the frontend registry.
-3. Update the recipe matrix above.
-4. Bump `schemaVersion` only if old lessons would break.
+The frontend registry is `src/features/lessons/blocks/registry.ts`, one map from
+`type` to a schema and a component. Adding a type is a component plus one registry
+entry; there is no switch elsewhere to extend.
 
-Steps 2 and 3 are frontend work, 1 and 4 are backend work. Coordinate through the
-schema file rather than through prose.
+The full checklist lives next to the registry, in
+`src/features/lessons/blocks/README.md`, and covers both sides of the contract.
+In short: add the block to `docs/lesson-schema.json` and the lesson writer prompt,
+add the Zod schema and the component in the frontend, add one registry entry, add
+a fixture, update the recipe matrix above, and bump `schemaVersion` only if old
+lessons would break. Coordinate through the schema file rather than through prose.
