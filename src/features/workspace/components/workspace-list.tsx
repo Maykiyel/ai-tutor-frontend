@@ -43,6 +43,11 @@ export function WorkspaceList() {
         </Button>
       </Group>
 
+      {/*
+        The states are exclusive: a failed list is never also an empty one, and
+        the heading and the create action stay put so the learner does not lose
+        their place when the request settles.
+      */}
       {query.isPending ? <LoadingState message="Loading your workspaces..." /> : null}
 
       {query.isError ? (
