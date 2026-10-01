@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+
+import { renderWithProviders, screen } from '@/test/test-utils'
 
 import { ExampleForm } from './example-form'
 
@@ -9,7 +10,7 @@ describe('ExampleForm', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
 
-    render(<ExampleForm onSubmit={onSubmit} />)
+    renderWithProviders(<ExampleForm onSubmit={onSubmit} />)
 
     await user.click(screen.getByRole('button', { name: 'Submit' }))
     expect(screen.getByText('Name is required')).toBeInTheDocument()
@@ -17,6 +18,7 @@ describe('ExampleForm', () => {
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Demo')
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
-    expect(onSubmit).toHaveBeenCalledWith({ name: 'Demo' })
+    // React Hook Form calls onSubmit(values, event).
+    expect(onSubmit.mock.calls[0]?.[0]).toEqual({ name: 'Demo' })
   })
 })

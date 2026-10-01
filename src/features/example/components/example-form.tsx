@@ -2,10 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Stack, TextInput } from '@mantine/core'
 import { useForm } from 'react-hook-form'
 
-import {
-  exampleFormSchema,
-  type ExampleFormValues,
-} from '../schemas/example-form-schema'
+import { exampleFormSchema, type ExampleFormValues } from '../schemas/example-form-schema'
 
 type ExampleFormProps = {
   onSubmit: (values: ExampleFormValues) => void | Promise<void>

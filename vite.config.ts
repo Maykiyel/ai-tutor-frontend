@@ -4,10 +4,7 @@ import babel from '@rolldown/plugin-babel'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
-  ],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

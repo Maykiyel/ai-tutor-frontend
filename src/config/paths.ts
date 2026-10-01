@@ -29,6 +29,18 @@ export const paths = {
     path: '/settings',
     getHref: () => '/settings',
   },
+  auth: {
+    login: {
+      path: '/login',
+      getHref: (redirectTo?: string | null) =>
+        `/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
+    },
+
+    register: {
+      path: '/register',
+      getHref: () => '/register',
+    },
+  },
 } as const
 
 export const navigation = [

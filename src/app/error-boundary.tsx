@@ -13,10 +13,7 @@ export function RootErrorBoundary() {
 
   return (
     <Center mih="60vh" px="md">
-      <ErrorState
-        message={message}
-        onRetry={() => window.location.reload()}
-      >
+      <ErrorState message={message} onRetry={() => window.location.reload()}>
         <Button component={Link} to="/" variant="subtle">
           Back to home
         </Button>

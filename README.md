@@ -90,6 +90,30 @@ Write component tests with Vitest and React Testing Library. Use `src/test/test-
 
 Remove this directory when starting a real project.
 
+## Authentication
+
+The starter includes authentication for the accompanying Laravel API. That backend issues Laravel Sanctum personal access tokens from `POST /api/login`, so the frontend stores the returned token and sends it as a Bearer token on subsequent API requests.
+
+The backend contract is:
+
+```text
+POST /api/register
+POST /api/login
+POST /api/logout
+```
+
+Registration creates the user but does not issue a token, so the frontend sends the user to the login page after registration. The backend does not expose a current-user endpoint, so the authenticated user returned by login is stored alongside the token.
+
+Auth state is persisted with Zustand. Logging out or receiving a `401` clears the auth state and the TanStack Query cache.
+
+Set the Laravel server origin in `.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+Do not add `/api` to `VITE_API_URL`; API functions add `/api/...` themselves.
+
 ## Commands
 
 ```bash

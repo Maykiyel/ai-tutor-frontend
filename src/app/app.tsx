@@ -5,6 +5,7 @@ import { Outlet, ScrollRestoration } from 'react-router'
 import { AppHeader } from '@/components/layout/app-header'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageContainer } from '@/components/layout/page-container'
+import { AuthMenu } from '@/features/auth/components/auth-menu'
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure()
@@ -21,7 +22,9 @@ export default function App() {
           collapsed: { mobile: !opened },
         }}
       >
-        <AppHeader opened={opened} toggle={toggle} />
+        <AppHeader opened={opened} toggle={toggle}>
+          <AuthMenu />
+        </AppHeader>
         <AppSidebar />
 
         <AppShell.Main bg={'gray.3'} c={'gray.8'}>

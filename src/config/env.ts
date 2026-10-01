@@ -1,7 +1,9 @@
 import * as z from 'zod'
 
 const envSchema = z.object({
-  API_URL: z.union([z.url(), z.string().startsWith('/')]).default('/api'),
+  // Base origin or path prefix only. API functions append their own `/api/...`
+  // segment, so including `/api` here would produce `/api/api/...`.
+  API_URL: z.union([z.url(), z.string().startsWith('/')]).default('/'),
 })
 
 const parsedEnv = envSchema.safeParse({

@@ -6,11 +6,7 @@ type EmptyStateProps = PropsWithChildren<{
   description?: string
 }>
 
-export function EmptyState({
-  title,
-  description,
-  children,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, children }: EmptyStateProps) {
   return (
     <Stack align="center" gap="xs" py="xl" ta="center">
       <Title order={3}>{title}</Title>
