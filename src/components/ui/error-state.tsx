@@ -14,7 +14,7 @@ export function ErrorState({
   children,
 }: ErrorStateProps) {
   return (
-    <Stack align="center" gap="xs" py="xl" ta="center">
+    <Stack align="center" gap="xs" py="xl" ta="center" role="alert">
       <Title order={3}>{title}</Title>
       <Text c="dimmed" maw={480}>
         {message}
