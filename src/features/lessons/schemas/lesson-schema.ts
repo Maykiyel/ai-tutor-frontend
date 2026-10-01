@@ -135,12 +135,50 @@ export const tableBlockSchema = z.object({
   rows: z.array(z.array(z.string())),
 })
 
+/**
+ * A question, its options, and the two pieces of feedback that make the block
+ * instant: each option carries its own feedback, shown the moment it is picked,
+ * and the question carries the explanation that follows it. They ship in the
+ * lesson because a learner who peeks only cheats themselves. Mirrors
+ * `quizBlock` in `docs/lesson-schema.json`.
+ *
+ * `correctOptionId` is typed as a plain string, exactly as the contract types it,
+ * rather than being refined against the options. A quiz question that names no
+ * option is a lesson the backend should have rejected, and the reader still has
+ * to show: every option stays pickable, and every option still gets the feedback
+ * the lesson wrote for it, which is the part that teaches. See ADR-0002.
+ *
+ * `tests` is optional in the contract and is not used by the reader yet: the ids
+ * point at sources and glossary terms the response hydrates, and the block has
+ * nothing to say about them before an attempt is submitted.
+ */
+const quizOptionSchema = z.object({
+  id: z.string().regex(/^[a-z]$/),
+  text: z.string(),
+  feedback: z.string(),
+})
+
+const quizQuestionSchema = z.object({
+  id: z.string().regex(/^q[0-9]+$/),
+  prompt: z.string(),
+  options: z.array(quizOptionSchema).min(3).max(4),
+  correctOptionId: z.string(),
+  explanation: z.string(),
+  tests: z.array(z.number().int()).optional(),
+})
+
+export const quizBlockSchema = z.object({
+  type: z.literal('quiz'),
+  questions: z.array(quizQuestionSchema).min(1),
+})
+
 export type ParagraphBlock = z.infer<typeof paragraphBlockSchema>
 export type HeadingBlock = z.infer<typeof headingBlockSchema>
 export type CalloutBlock = z.infer<typeof calloutBlockSchema>
 export type CodeBlock = z.infer<typeof codeBlockSchema>
 export type FigureBlock = z.infer<typeof figureBlockSchema>
 export type TableBlock = z.infer<typeof tableBlockSchema>
+export type QuizBlock = z.infer<typeof quizBlockSchema>
 
 /**
  * Every block type `docs/lesson-schema.json` defines, fixed at nine. This is the
@@ -165,8 +203,8 @@ export type LessonBlockType = z.infer<typeof lessonBlockTypeSchema>
 
 /**
  * The blocks this build has a schema for. It is a subset of the nine contract
- * types: steps, quiz, and recall are defined by the contract and arrive with
- * their own tickets. `LessonBlock` grows as each lands.
+ * types: steps and recall are defined by the contract and arrive with their own
+ * tickets. `LessonBlock` grows as each lands.
  */
 export type LessonBlock =
   | z.infer<typeof paragraphBlockSchema>
@@ -175,6 +213,7 @@ export type LessonBlock =
   | z.infer<typeof codeBlockSchema>
   | z.infer<typeof figureBlockSchema>
   | z.infer<typeof tableBlockSchema>
+  | z.infer<typeof quizBlockSchema>
 
 /**
  * The lesson without its blocks. `blocks` is deliberately absent: it is the one
