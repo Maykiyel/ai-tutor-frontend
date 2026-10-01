@@ -1,7 +1,19 @@
 import '@testing-library/jest-dom/vitest'
 
-// jsdom does not implement matchMedia, which Mantine's color-scheme handling
-// calls on mount. Provide a minimal stub so components can render in tests.
+// jsdom implements neither matchMedia nor ResizeObserver, both of which Mantine
+// calls on mount — matchMedia for colour-scheme handling, ResizeObserver for
+// ScrollArea. Stub them so those components can render in tests.
+if (typeof window !== 'undefined' && !('ResizeObserver' in window)) {
+  Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    value: class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  })
+}
+
 if (typeof window !== 'undefined' && !window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,

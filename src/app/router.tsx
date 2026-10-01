@@ -12,6 +12,7 @@ import { RegisterPage } from './routes/register.tsx'
 import { CreateWorkspacePage } from './routes/workspace-create.tsx'
 import { WorkspaceGlossaryPage } from './routes/workspace-glossary.tsx'
 import { WorkspaceHomePage } from './routes/workspace-home.tsx'
+import { WorkspaceLessonPage } from './routes/workspace-lesson.tsx'
 import { WorkspaceLessonsPage } from './routes/workspace-lessons.tsx'
 import { WorkspaceRecordsPage } from './routes/workspace-records.tsx'
 import { WorkspaceReferencesPage } from './routes/workspace-references.tsx'
@@ -60,13 +61,19 @@ export const routes: RouteObject[] = [
         path: paths.workspaces.home.path,
         Component: WorkspaceHomePage,
       },
-      // Declared because the path config declares them and the sidebar offers
-      // them. Each renders an honest "not built yet" screen rather than a 404:
-      // a link that goes nowhere is worse than a screen that says so.
       {
         path: paths.workspaces.lessons.path,
         Component: WorkspaceLessonsPage,
       },
+      // The reader, by deep link. Declared before the lessons path it nests
+      // under so a lesson id resolves here rather than falling through.
+      {
+        path: paths.workspaces.lessonDetail.path,
+        Component: WorkspaceLessonPage,
+      },
+      // Declared because the path config declares them and the sidebar offers
+      // them. Each renders an honest "not built yet" screen rather than a 404:
+      // a link that goes nowhere is worse than a screen that says so.
       {
         path: paths.workspaces.records.path,
         Component: WorkspaceRecordsPage,

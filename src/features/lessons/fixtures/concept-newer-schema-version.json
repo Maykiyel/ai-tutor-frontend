@@ -1,0 +1,39 @@
+{
+  "lesson": {
+    "schemaVersion": 3,
+    "number": 8,
+    "kind": "concept",
+    "slug": "newer-schema-version",
+    "title": "A lesson written in a newer format",
+    "skill": "Read whatever a newer lesson format still lets you read.",
+    "missionLink": "This lesson was saved after the app was last built. It should still be readable rather than refused.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "Nothing new here; it is here so the lesson parses."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "Still readable"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The blocks in this lesson match what the app understands, so they render even though the lesson as a whole is newer than the app."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

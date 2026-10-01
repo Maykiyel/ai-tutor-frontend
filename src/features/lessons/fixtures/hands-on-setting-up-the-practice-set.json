@@ -1,0 +1,64 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 4,
+    "kind": "hands-on",
+    "slug": "setting-up-the-practice-set",
+    "title": "Setting up the practice set",
+    "skill": "Set up one equation for a problem you actually have to solve, before trying to solve it.",
+    "missionLink": "This is the first fifteen minutes of the Friday deadline. Everything after it is faster if you do this part first.",
+    "minutes": 12,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "Same method as the concept lesson, at practice pace."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "Name the unknown first"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Before any arithmetic, write down what you are solving for. One letter, and a sentence saying what it measures. A problem with two plausible unknowns is a problem you have not read yet."
+          }
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "watch-out",
+        "content": [
+          {
+            "type": "text",
+            "text": "If your equation needs the unknown on both sides, stop. Go back to the word problem: there is usually a second unknown you have not named."
+          }
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "def set_up(total: float, each: float) -> str:\n    count = total / each\n    return f'{count:g} groups of {each:g} make {total:g}'"
+      },
+      {
+        "type": "callout",
+        "tone": "win",
+        "content": [
+          {
+            "type": "text",
+            "text": "An equation you can say out loud in plain words is an equation you can solve. If you cannot, it is not finished."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}
