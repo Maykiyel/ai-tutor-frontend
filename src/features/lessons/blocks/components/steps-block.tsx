@@ -1,6 +1,8 @@
 import { useEffect, useId } from 'react'
 import { Checkbox, Paper, Stack, Text, Title } from '@mantine/core'
 
+import { useSubmittedAttempt } from '../../attempt/attempt-store'
+import { LockedAnswersNote } from '../../attempt/locked-answers-note'
 import type { StepsBlock } from '../../schemas/lesson-schema'
 import { useForgetStepsProgress, useSetStepDone, useStepDone } from '../../steps/steps-progress'
 import { useLesson } from '../lesson-context'
@@ -55,13 +57,21 @@ export function StepsBlockView({ block }: { block: StepsBlock }) {
           <StepRow key={item.id} item={item} lessonSlug={header.slug} />
         ))}
       </Stack>
+
+      {/* The ticks leave with the attempt and come back off the request that carried
+          them, so a submitted checklist still shows where the learner got to. */}
+      <LockedAnswersNote lessonSlug={header.slug} />
     </Stack>
   )
 }
 
 function StepRow({ item, lessonSlug }: { item: StepsBlock['items'][number]; lessonSlug: string }) {
-  const done = useStepDone(lessonSlug, item.id)
+  const ticked = useStepDone(lessonSlug, item.id)
   const setDone = useSetStepDone()
+  const sent = useSubmittedAttempt(lessonSlug)
+  // As with the other two blocks: sending empties the live map, and the sent request
+  // is where the learner's ticks are now kept. Ungraded, but still their work.
+  const done = sent ? (sent.steps[item.id] ?? false) : ticked
 
   return (
     // The label wraps the control and the words, so the whole row is the target
@@ -72,6 +82,9 @@ function StepRow({ item, lessonSlug }: { item: StepsBlock['items'][number]; less
         checked={done}
         onChange={() => setDone(lessonSlug, item.id, !done)}
         aria-label={item.instruction}
+        // Disabled rather than hidden: the ticks are the learner's own work and the
+        // reason they can no longer change them is said in words below.
+        disabled={Boolean(sent)}
       />
 
       <Stack gap={2}>

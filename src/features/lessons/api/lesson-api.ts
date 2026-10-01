@@ -1,5 +1,10 @@
 import { apiClient } from '@/lib/api/client'
 
+import {
+  parseAttemptResult,
+  type AttemptRequest,
+  type AttemptResult,
+} from '../schemas/attempt-schema'
 import { lessonListResponseSchema, type LessonList } from '../schemas/lesson-list-schema'
 import { parseLessonResponse, type ParsedLessonResponse } from '../schemas/lesson-schema'
 import { lessonEndpoints } from './lesson-endpoints'
@@ -35,4 +40,30 @@ export async function getLesson(lessonId: string): Promise<ParsedLessonResponse>
   const response = await apiClient.get(lessonEndpoints.byId(lessonId))
 
   return parseLessonResponse(response.data)
+}
+
+/**
+ * Sends one attempt for one visit of one lesson, and parses what came back.
+ *
+ * One request per lesson, not one per block: the answer is the whole visit, and the
+ * contract's request carries every practice block's answers in one `answers` array.
+ *
+ * The request is **not** parsed on the way out. It is built from already-validated
+ * blocks by `attempt/build-attempt.ts`, so a request that failed this function's own
+ * schema would mean the builder is wrong rather than that the backend sent something
+ * odd — and a parse failure there would surface to the learner as a submission error
+ * with nothing wrong on their side.
+ *
+ * The response *is* parsed, and strictly. `perAnswer` is the only place the graded
+ * feedback for this attempt exists, so a result this file cannot read means no
+ * learner-facing verdict can be shown at all: that is a failed submission, reported
+ * as one, rather than an empty result view claiming the attempt was graded.
+ */
+export async function submitAttempt(
+  lessonId: string,
+  attempt: AttemptRequest,
+): Promise<AttemptResult> {
+  const response = await apiClient.post(lessonEndpoints.attempts(lessonId), attempt)
+
+  return parseAttemptResult(response.data)
 }
