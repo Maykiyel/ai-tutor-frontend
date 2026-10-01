@@ -20,7 +20,11 @@ function TestProviders({ children }: PropsWithChildren) {
   const queryClient = createTestQueryClient()
 
   return (
-    <MantineProvider>
+    // `env="test"` makes Mantine skip transitions outright. Without it a dropdown
+    // is mounted and then hidden by an asynchronous floating transition, so an
+    // item can be in the DOM while an accessibility query still reports it as
+    // absent — which is a timing accident, not a behaviour.
+    <MantineProvider env="test">
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </MantineProvider>
   )
