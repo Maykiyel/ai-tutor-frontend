@@ -1,10 +1,5 @@
-import { NotYetBuilt } from '@/components/ui/not-yet-built'
+import { LessonList } from '@/features/lessons/components/lesson-list'
 
 export function WorkspaceLessonsPage() {
-  return (
-    <NotYetBuilt
-      title="Lessons"
-      description="The lessons written for this topic will be listed here, each with its number, kind, title, and length."
-    />
-  )
+  return <LessonList />
 }
