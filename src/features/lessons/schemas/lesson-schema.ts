@@ -110,13 +110,37 @@ export type HeadingBlock = z.infer<typeof headingBlockSchema>
 export type CalloutBlock = z.infer<typeof calloutBlockSchema>
 export type CodeBlock = z.infer<typeof codeBlockSchema>
 
+/**
+ * Every block type `docs/lesson-schema.json` defines, fixed at nine. This is the
+ * *contract's* set, kept separate from `LessonBlock` below so that a type the
+ * app has no component for is still a known type rather than an unknown one.
+ * A block carrying any other `type` is an unknown type: it renders nothing and
+ * is logged.
+ */
+export const lessonBlockTypeSchema = z.enum([
+  'callout',
+  'heading',
+  'paragraph',
+  'code',
+  'figure',
+  'table',
+  'steps',
+  'quiz',
+  'recall',
+])
+
+export type LessonBlockType = z.infer<typeof lessonBlockTypeSchema>
+
+/**
+ * The blocks this build has a schema for. It is a subset of the nine contract
+ * types: figure, table, steps, quiz, and recall are defined by the contract and
+ * arrive with their own tickets. `LessonBlock` grows as each lands.
+ */
 export type LessonBlock =
   | z.infer<typeof paragraphBlockSchema>
   | z.infer<typeof headingBlockSchema>
   | z.infer<typeof calloutBlockSchema>
   | z.infer<typeof codeBlockSchema>
-
-export type LessonBlockType = LessonBlock['type']
 
 /**
  * The lesson without its blocks. `blocks` is deliberately absent: it is the one

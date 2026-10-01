@@ -14,8 +14,11 @@ types working as the format grows.
 2. **Add the component** to `./components/<name>-block.tsx`. It takes
    `{ block }` and nothing else. If it needs the hydrated maps or the lesson, take
    them from `LessonContext` rather than changing the props every block receives.
-3. **Register it** — one entry in `blockRegistry` in `registry.ts`. Add the new
-   type to `LessonBlockType`'s union too.
+3. **Register it** — one entry in `blockRegistry` in `registry.ts`. Add the parsed
+   block to the `LessonBlock` union in `../schemas/lesson-schema.ts` as well; if
+   the type is new to the contract, add it to `lessonBlockTypeSchema` too. Both
+   unions are what make `ParsedLessonBlock` distribute, so a type left out of one
+   of them will not typecheck at the render site.
 4. **Add a fixture** in `../fixtures`, named `<kind>-<slug>.json`, holding at
    least one block of the new type. A block type with no fixture is a block type
    that has never been rendered.

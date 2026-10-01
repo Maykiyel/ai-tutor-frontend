@@ -197,6 +197,35 @@ describe('LessonReader', () => {
     expect(warnings[0]).toContain('sandbox')
   })
 
+  it('reads a block type the contract defines but this build does not render yet', async () => {
+    // `figure` is one of the contract's nine types and has no component yet. It
+    // must behave exactly like a genuinely unknown type rather than breaking the
+    // lesson, so that a block arriving before its ticket is not a special case.
+    vi.mocked(getLesson).mockResolvedValue({
+      ...conceptFixture,
+      lesson: {
+        ...conceptFixture.lesson,
+        blocks: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'The paragraph before the figure.' }],
+          },
+          { type: 'figure', kind: 'image', source: 'https://example.org/x.png', alt: 'A graph' },
+        ],
+      },
+    })
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('The paragraph before the figure.')).toBeInTheDocument()
+    expect(
+      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
+    ).toHaveTextContent('One part of this lesson could not be shown')
+  })
+
   it('skips a malformed block, keeps the rest, and tells the learner something was skipped', async () => {
     vi.mocked(getLesson).mockResolvedValue(malformedBlockFixture)
 

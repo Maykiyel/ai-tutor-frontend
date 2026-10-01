@@ -27,10 +27,10 @@ export type BlockComponent<TBlock extends LessonBlock> = ComponentType<{ block: 
  * block is a prop on the parsed value.
  *
  * **Adding a block type is one component plus one registry entry.** Write the
- * schema and the component, add one line below. There is no switch elsewhere to
- * extend and no list to keep in step, which is what keeps the reader's tolerance
- * for unknown types working as the format grows. The full checklist is in
- * `README.md` beside this file.
+ * schema and the component, add one line below, and add the block to the
+ * `LessonBlock` union. There is no switch elsewhere to extend and no list to keep
+ * in step, which is what keeps the reader's tolerance for unknown types working as
+ * the format grows. The full checklist is in `README.md` beside this file.
  *
  * The map is typed by inference, not annotated: `satisfies` against the union of
  * block types would have to claim each entry accepts `unknown`, which no typed
@@ -60,10 +60,13 @@ export type ParsedLessonBlock = {
 }[RegisteredBlockType]
 
 /**
- * True only for a type this build has a component for. `LessonBlockType` names
- * every type the contract defines; this one narrows to the subset the registry
- * actually renders, which is the same set today and will not be once a later
- * ticket adds figure, table, steps, quiz, or recall.
+ * True only for a type this build has a component for.
+ *
+ * The registry is a strict subset of the contract's nine types: figure, table,
+ * steps, quiz, and recall arrive with their own tickets. A block of one of those
+ * types arriving early is not a contract violation, so it takes the same path as
+ * a genuinely unknown type — it renders nothing, is counted as skipped so the
+ * learner is told, and is logged. Nothing breaks when a ticket lands late.
  */
 export function isRegisteredBlockType(type: unknown): type is RegisteredBlockType {
   return typeof type === 'string' && Object.hasOwn(blockRegistry, type)
