@@ -43,9 +43,11 @@ const everyWorkspaceHref = [
   paths.workspaces.root.getHref(),
   paths.workspaces.create.getHref(),
   ...getWorkspaceNavigation('7').flatMap((section) => section.items.map((item) => item.to)),
-  // Not a sidebar destination, but a path the config declares and a learner
-  // reaches from the lesson list, so it is held to the same standard.
+  // Not sidebar destinations, but paths the config declares and a learner reaches
+  // from a lesson — one from the lesson list, one from a cross-reference in the
+  // lesson's prose — so they are held to the same standard.
   paths.workspaces.lessonDetail.getHref('7', '12'),
+  paths.workspaces.referenceDocDetail.getHref('7', '5'),
 ]
 
 function signIn() {

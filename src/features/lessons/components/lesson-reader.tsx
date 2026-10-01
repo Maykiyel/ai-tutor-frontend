@@ -15,6 +15,7 @@ import {
   type ParsedLessonResponse,
 } from '../schemas/lesson-schema'
 import { BackToLessonsLink, LessonHeaderView } from './lesson-header'
+import { LessonSourceList } from './lesson-source-list'
 
 export function LessonReader() {
   const { lessonId = '' } = useParams()
@@ -62,6 +63,11 @@ function LessonFrame({ lesson }: { lesson: ParsedLessonResponse }) {
           {skipped.length > 0 ? <SkippedBlocksNotice count={skipped.length} /> : null}
 
           <LessonBlocks blocks={blocks} />
+
+          {/* The sources come after the prose, from the same hydrated map the
+              citations resolve against, so the foot of the lesson is where the
+              learner looks when they want to check a claim. */}
+          <LessonSourceList />
         </Stack>
       </Container>
     </LessonProvider>
