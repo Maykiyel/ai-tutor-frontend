@@ -11,7 +11,7 @@ import { useAuthStore } from '@/features/auth/store'
 
 function getRedirectTarget(value: string | null) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) {
-    return paths.home.getHref()
+    return paths.workspaces.root.getHref()
   }
 
   return value

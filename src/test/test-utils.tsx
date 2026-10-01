@@ -2,6 +2,7 @@ import type { PropsWithChildren, ReactElement } from 'react'
 import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, type RenderOptions } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach } from 'vitest'
 
 function createTestQueryClient() {
@@ -37,6 +38,15 @@ export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptio
     wrapper: TestProviders,
     ...options,
   })
+}
+
+/**
+ * For a screen that renders router links. A screen reached through the real
+ * router config belongs in `src/app/router.test.tsx`; this is for a single
+ * screen whose links only need somewhere to point.
+ */
+export function renderWithRouter(ui: ReactElement, initialEntries: string[] = ['/']) {
+  return renderWithProviders(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>)
 }
 
 export * from '@testing-library/react'

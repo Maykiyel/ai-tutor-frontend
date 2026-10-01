@@ -24,7 +24,9 @@ export const redirectAuthenticated: MiddlewareFunction = ({ context }) => {
   const { user, token } = useAuthStore.getState()
 
   if (user && token) {
-    throw redirect(paths.home.getHref())
+    // Signing in lands on the workspace list, which the app root redirects to
+    // as well, so both routes a signed-in visitor arrives at agree.
+    throw redirect(paths.workspaces.root.getHref())
   }
 
   context.set(authUserContext, null)
