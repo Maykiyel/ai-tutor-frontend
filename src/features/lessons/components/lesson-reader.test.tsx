@@ -15,6 +15,7 @@ import {
   lessonFixtures,
   malformedBlockFixture,
   newerVersionFixture,
+  quizFixture,
   reviewFixture,
   raggedTableFixture,
   segmentsFixture,
@@ -39,6 +40,56 @@ const LESSON_ID = '12'
  * arrive still fails, loudly, in a test of its own.
  */
 const DIAGRAM_TIMEOUT = 60_000
+
+/**
+ * The quiz as the payload wrote it, read from the fixture rather than from the
+ * screen. Everything a neutrality assertion compares the rendered options against
+ * comes from here, so the expectation is the lesson the backend sent and not a
+ * restatement of whatever the renderer happened to do.
+ */
+type QuizQuestionPayload = {
+  id: string
+  prompt: string
+  options: { id: string; text: string; feedback: string }[]
+  correctOptionId: string
+  explanation: string
+}
+
+function quizQuestions(): QuizQuestionPayload[] {
+  const block = quizFixture.lesson.blocks.find(
+    (candidate) => (candidate as { type?: string }).type === 'quiz',
+  ) as { questions: QuizQuestionPayload[] } | undefined
+
+  if (!block) {
+    throw new Error('the quiz fixture carries no quiz block')
+  }
+
+  return block.questions
+}
+
+/**
+ * What a learner hears as an option's name. A radio input carries no text of its
+ * own; the words come from the label wrapped around it, which is also what
+ * `:hover` and a click reach.
+ */
+function optionName(option: HTMLElement): string {
+  return option.closest('label')?.textContent?.trim() ?? ''
+}
+
+/**
+ * The whole of an option as markup, minus the two things that cannot carry the
+ * answer: its text and its `id`.
+ *
+ * Text is the option's own words, and `id` is generated per element so dom ids are
+ * unique — it says which option was rendered first, not which is right, and in the
+ * fixture the right option is first, second and third. Everything else is compared
+ * byte for byte: the element, its classes, every attribute, and every element
+ * inside it. A `data-correct`, a second class, a checkmark, a different tag, an
+ * extra wrapper, a reordered child — all of them make two options differ here.
+ */
+function optionSignature(element: Element): string {
+  return element.outerHTML.replace(/\sid="[^"]*"/g, '').replace(/>[^<>]+</g, '><')
+}
 
 function renderReader(lessonId = LESSON_ID) {
   return renderWithRouter(
@@ -292,6 +343,7 @@ describe('LessonReader', () => {
     ['a figure wider than the column', wideFigureFixture, 'A figure wider than the column'],
     ['a comparison table', tableComparisonFixture, 'Four ways to undo a step'],
     ['a table the model got wrong', raggedTableFixture, 'A table the model got slightly wrong'],
+    ['a quiz with instant feedback', quizFixture, 'Checking the two moves'],
   ])(
     'takes every colour from a theme token in %s, so the lesson reads in either scheme',
     async (_name, fixture, heading) => {
@@ -808,6 +860,209 @@ describe('LessonReader', () => {
     expect(within(header).getAllByRole('columnheader')[3]).toBeEmptyDOMElement()
     expect(within(body[2]).getAllByRole('cell')).toHaveLength(4)
     expect(within(body[2]).getByRole('cell', { name: 'and both sides read 7' })).toBeInTheDocument()
+  })
+
+  it('shows every quiz question with every option it came with', async () => {
+    vi.mocked(getLesson).mockResolvedValue(quizFixture)
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Checking the two moves' }),
+    ).toBeInTheDocument()
+
+    // Three questions, three radio groups, one each.
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(3)
+
+    for (const question of quizQuestions()) {
+      // Every question is on screen, named by its own words, with as many options as
+      // the lesson wrote for it. A question the learner cannot see is a question
+      // nobody can answer.
+      const group = screen.getByRole('radiogroup', { name: question.prompt })
+      expect(within(group).getAllByRole('radio')).toHaveLength(question.options.length)
+      expect(screen.getByText(question.prompt)).toBeInTheDocument()
+    }
+  })
+
+  it('tells the learner nothing about which option is right, before they answer', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(quizFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Checking the two moves' })
+
+    const questions = quizQuestions()
+
+    for (const question of questions) {
+      const group = screen.getByRole('radiogroup', { name: question.prompt })
+      const options = within(group).getAllByRole('radio')
+
+      // One signature for every option, in this question and in every other: the
+      // element, its classes, its attributes and what is inside it. If the renderer
+      // marked the right option with a class, a `data-correct`, an `aria-describedby`,
+      // a glyph, or a different tag, the signatures would come out different and
+      // this would fail. Nothing here reads the payload's `correctOptionId`, so a
+      // renderer that leaked the answer by any of those means fails whichever
+      // question the learner looks at first.
+      expect(new Set(options.map((option) => optionSignature(option))).size).toBe(1)
+      expect(new Set(options.map((option) => optionSignature(option.closest('label')!))).size).toBe(
+        1,
+      )
+
+      // Options in the order the lesson wrote them. An order worked out from
+      // correctness would give the answer away with every option looking identical,
+      // so the order is part of neutrality and not part of the layout.
+      expect(options.map(optionName)).toEqual(question.options.map((option) => option.text))
+
+      // Nothing is chosen yet, and nothing says anything is. The answer state is the
+      // radio's own checkedness, which no attribute has to spell out for it.
+      expect(options.filter((option) => (option as HTMLInputElement).checked)).toHaveLength(0)
+      expect(options.every((option) => !option.closest('[data-checked]'))).toBe(true)
+
+      // The options are the same length as each other. The backend made them so, and
+      // a renderer that truncated one or padded another with an ellipsis would hand
+      // the answer back in the line length.
+      const wordCounts = options.map((option) => optionName(option).split(/\s+/).length)
+      expect(new Set(wordCounts).size).toBe(1)
+
+      // Nothing marks an option by pointing at it, so a hover cannot tell the learner
+      // anything either. Every option carries the same class and the same one hover
+      // rule, which is the whole of what makes a hovered option look like any other
+      // hovered option.
+      for (const option of options) {
+        const hovered = optionSignature(option)
+
+        await learner.hover(option)
+
+        // The pointed-at option gained no class and no attribute, and no sibling
+        // gained anything either.
+        expect(optionSignature(option)).toBe(hovered)
+        expect(options.map((other) => optionSignature(other))).toEqual(options.map(() => hovered))
+      }
+    }
+
+    // The answer key is not in the document at all — not hidden, not collapsed, not
+    // in a `title`, not in a tooltip waiting for a hover. A feedback string anywhere
+    // in the page is something a learner can read before they have chosen, which is
+    // the one thing this block must never do.
+    for (const question of questions) {
+      expect(screen.queryByText(question.explanation)).not.toBeInTheDocument()
+
+      for (const option of question.options) {
+        expect(screen.queryByText(option.feedback)).not.toBeInTheDocument()
+      }
+    }
+
+    // And no wording has leaked either, in any colour scheme.
+    expect(screen.queryByText('Correct')).not.toBeInTheDocument()
+    expect(screen.queryByText('Not quite')).not.toBeInTheDocument()
+  })
+
+  it('lets a keyboard learner answer, through a radio group rather than a click handler', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(quizFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Checking the two moves' })
+
+    const first = quizQuestions()[0]
+    const group = screen.getByRole('radiogroup', { name: first.prompt })
+    const options = within(group).getAllByRole('radio')
+
+    // One tab stop for the whole question, the way a radio group is meant to work:
+    // tabbed to rather than focused directly, so this proves the options are
+    // reachable by keyboard at all.
+    for (let presses = 0; presses < 20 && document.activeElement !== options[0]; presses += 1) {
+      await learner.tab()
+    }
+    expect(options[0]).toHaveFocus()
+
+    // Tabbing again leaves the question rather than walking through its options.
+    await learner.tab()
+    expect(group.contains(document.activeElement)).toBe(false)
+
+    await options[0].focus()
+    await learner.keyboard(' ')
+
+    // Space chooses the option under the cursor, and the answer state is the
+    // radio's own: exactly one option in the group is chosen, and it is the one the
+    // keyboard was on.
+    expect(options.filter((option) => (option as HTMLInputElement).checked)).toEqual([options[0]])
+
+    // The arrow keys move through a question and choose as they go, which is what a
+    // radio group is for. Moving from the first option lands on the second.
+    await learner.keyboard('{ArrowDown}')
+
+    expect(options[1]).toHaveFocus()
+    expect(options.filter((option) => (option as HTMLInputElement).checked)).toEqual([options[1]])
+
+    // And the arrow keys stay inside the question they belong to.
+    await learner.keyboard('{ArrowUp}{ArrowUp}')
+
+    expect(options[2]).toHaveFocus()
+    expect(options[2]).toBeChecked()
+  })
+
+  it('answers the moment an option is picked, and lets the learner change their mind', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(quizFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Checking the two moves' })
+
+    const [question, other] = quizQuestions()
+    const group = screen.getByRole('radiogroup', { name: question.prompt })
+    const right = question.options.find((option) => option.id === question.correctOptionId)!
+    const wrong = question.options.find((option) => option.id !== question.correctOptionId)!
+
+    // Before an answer there is a live region for this question and it is empty, so
+    // it announces nothing on load and something the moment it is answered.
+    const feedback = screen.getByRole('status', { name: question.prompt })
+    expect(feedback).toBeEmptyDOMElement()
+    expect(feedback).toHaveAttribute('aria-live', 'polite')
+
+    await learner.click(within(group).getByRole('radio', { name: wrong.text }))
+
+    // The answer landed in that same live region, which is what announces it.
+    expect(screen.getByRole('status', { name: question.prompt })).toHaveTextContent(wrong.feedback)
+    expect(feedback).toHaveAttribute('aria-live', 'polite')
+
+    // That option's own feedback, and the question's explanation after it.
+    const note = within(feedback).getByRole('note')
+    expect(note).toHaveTextContent(wrong.feedback)
+    expect(note).toHaveTextContent(question.explanation)
+    expect(
+      note.compareDocumentPosition(within(note).getByText(question.explanation, { exact: false })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+
+    // Right or wrong is said in words, and marked with a glyph as well as a colour,
+    // so a learner who cannot see either still knows where they landed.
+    expect(note).toHaveAccessibleName('Not quite')
+    expect(note.textContent).toContain('✗')
+
+    // The other questions said nothing, and nothing leaked from them either.
+    expect(screen.getByRole('status', { name: other.prompt })).toBeEmptyDOMElement()
+
+    // Changing the answer before submitting is allowed, and the learner sees the
+    // answer they changed to rather than both answers at once.
+    await learner.click(within(group).getByRole('radio', { name: right.text }))
+
+    expect(within(feedback).getByRole('note')).toHaveAccessibleName('Correct')
+    expect(within(feedback).getByRole('note')).toHaveTextContent(right.feedback)
+    expect(within(feedback).getByRole('note')).not.toHaveTextContent(wrong.feedback)
+    expect(within(feedback).getByRole('note').textContent).toContain('✓')
+    expect(screen.getByRole('status', { name: question.prompt })).toHaveTextContent(
+      question.explanation,
+    )
+    expect(
+      within(group)
+        .getAllByRole('radio')
+        .filter((o) => (o as HTMLInputElement).checked),
+    ).toHaveLength(1)
   })
 
   it('lets the learner get back to the lesson list', async () => {

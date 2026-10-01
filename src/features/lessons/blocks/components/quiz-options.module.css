@@ -1,0 +1,32 @@
+/*
+ * One class, used by every option of every question.
+ *
+ * Mantine style props cover spacing and colour but have no pseudo-selector form,
+ * so a hover or focus affordance has to come from a rule. It is written once,
+ * here, for the one class every option carries: there is no rule that can match
+ * one option and not another, because there is nothing to tell the stylesheet
+ * which option is which. Every value is a Mantine theme token, so the option
+ * reads the same in either colour scheme.
+ */
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+  cursor: pointer;
+
+  /* One hover rule for every option, and one focus rule for every option. What
+     pointing at an option looks like is therefore the same whichever option it
+     is, and it is decided by the learner's pointer rather than by the payload. */
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}

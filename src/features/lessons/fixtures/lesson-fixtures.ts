@@ -13,6 +13,7 @@ import conceptFigureSvgHostile from './concept-figure-svg-hostile.json'
 import conceptFigureWide from './concept-figure-wide.json'
 import conceptMalformedBlock from './concept-malformed-block.json'
 import conceptNewerSchemaVersion from './concept-newer-schema-version.json'
+import conceptQuiz from './concept-quiz.json'
 import conceptSolvingTwoStepEquations from './concept-solving-two-step-equations.json'
 import conceptTableComparison from './concept-table-comparison.json'
 import conceptTableRagged from './concept-table-ragged.json'
@@ -77,6 +78,17 @@ export const tableComparisonFixture = parseLessonResponse(conceptTableComparison
  * rejected — kept here because the reader still has to show it.
  */
 export const raggedTableFixture = parseLessonResponse(conceptTableRagged)
+
+/**
+ * A quiz with three questions, and the correct option in a different place in
+ * each of them: second of three, third of four, and first of three. A block that
+ * gave the answer away by position, by class, or by an attribute would be caught
+ * whichever question the learner looks at first.
+ *
+ * Every option in a question is the same number of words, which is the backend's
+ * rule and the one the reader must not break by truncating or padding.
+ */
+export const quizFixture = parseLessonResponse(conceptQuiz)
 
 /**
  * Keyed by lesson slug so a test that walks the reader by slug reads like a

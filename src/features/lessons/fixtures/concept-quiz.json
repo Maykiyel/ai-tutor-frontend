@@ -1,0 +1,114 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 12,
+    "kind": "concept",
+    "slug": "checking-the-two-moves",
+    "title": "Checking the two moves",
+    "skill": "Pick the move a two-step equation needs, and say why the order does not change the answer.",
+    "missionLink": "You keep choosing the wrong first move and losing the equation halfway. Three questions, three chances to notice it.",
+    "minutes": 6,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It works both moves one at a time and shows the order each one belongs in."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Take these three. Nothing is marked, so read every option before you pick one."
+          }
+        ]
+      },
+      {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "prompt": "Which step comes first when you solve 2x + 3 = 11?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Add four to both sides",
+                "feedback": "That is the second move, not the first. It only works once the 3 is off both sides."
+              },
+              {
+                "id": "b",
+                "text": "Subtract three from both sides",
+                "feedback": "Exactly that. Take the 3 off first and the term x is left standing alone."
+              },
+              {
+                "id": "c",
+                "text": "Divide both sides by two",
+                "feedback": "You cannot divide yet, because there is still a 3 sitting on top of x."
+              }
+            ],
+            "correctOptionId": "b",
+            "explanation": "Undo addition before you undo multiplication. Doing it the other way round changes what the 2 is multiplying."
+          },
+          {
+            "id": "q2",
+            "prompt": "Multiplying both sides by one half is the same as which move?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Halves values on both sides",
+                "feedback": "Right size, wrong target. The move has to land on both sides or the equality breaks."
+              },
+              {
+                "id": "b",
+                "text": "Halves the left hand side",
+                "feedback": "One side only destroys the equality, so that cannot be what it does."
+              },
+              {
+                "id": "c",
+                "text": "Divides every value by two",
+                "feedback": "That is it. Multiplying by one half is dividing by two, and it happens to both sides."
+              },
+              {
+                "id": "d",
+                "text": "Leaves the right side alone",
+                "feedback": "The right side is halved along with the left. Both sides always move together."
+              }
+            ],
+            "correctOptionId": "c",
+            "explanation": "Multiplying by one half is dividing by two. It is safe for the same reason every step here is safe: the same operation lands on both sides, so the equality survives.",
+            "tests": [12]
+          },
+          {
+            "id": "q3",
+            "prompt": "Your answer does not check out when you put it back in. What do you check first?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Whether every step was reversible",
+                "feedback": "Yes. Every step has to be reversible, or the equation changed meaning somewhere you are not looking."
+              },
+              {
+                "id": "b",
+                "text": "Whether the answer is whole",
+                "feedback": "Whether the answer is a whole number is worth knowing, but it comes after this."
+              },
+              {
+                "id": "c",
+                "text": "Whether both sides still match",
+                "feedback": "They should match. If they do not, the mistake is earlier than the last line you wrote."
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "Check that every step was reversible, then put the answer back on both sides. A mistake in an irreversible step cannot be undone by checking arithmetic."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}
