@@ -21,6 +21,11 @@ export const paths = {
       path: '/workspaces/:workspaceId/lessons',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/lessons`,
     },
+    lessonDetail: {
+      path: '/workspaces/:workspaceId/lessons/:lessonId',
+      getHref: (workspaceId: string, lessonId: string) =>
+        `/workspaces/${workspaceId}/lessons/${lessonId}`,
+    },
     records: {
       path: '/workspaces/:workspaceId/learning-records',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/learning-records`,

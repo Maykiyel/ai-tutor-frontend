@@ -6,6 +6,10 @@ import { getWorkspaceNavigation, paths } from '@/config/paths'
 import { login } from '@/features/auth/api/auth-api'
 import { useAuthStore } from '@/features/auth/store'
 import type { User } from '@/features/auth/types'
+import { getLesson, listLessons } from '@/features/lessons/api/lesson-api'
+import { conceptFixture } from '@/features/lessons/fixtures/lesson-fixtures'
+import { lessonListResponse } from '@/features/lessons/fixtures/lesson-list-fixtures'
+import { lessonListResponseSchema } from '@/features/lessons/schemas/lesson-list-schema'
 import { getWorkspace, listWorkspaces } from '@/features/workspace/api/workspace-api'
 import {
   workspaceResponse,
@@ -23,16 +27,21 @@ import { routes } from './router'
 // modules are stubbed with fixture responses and everything above them — router,
 // middleware, shell, screens — is the real thing.
 vi.mock('@/features/auth/api/auth-api')
+vi.mock('@/features/lessons/api/lesson-api')
 vi.mock('@/features/workspace/api/workspace-api')
 
 const user: User = { username: 'ada', email: 'ada@example.com' }
 const workspaces = workspaceListResponseSchema.parse(workspacesResponse)
 const algebra = workspaceResponseSchema.parse(workspaceResponse)
+const lessons = lessonListResponseSchema.parse(lessonListResponse)
 
 const everyWorkspaceHref = [
   paths.workspaces.root.getHref(),
   paths.workspaces.create.getHref(),
   ...getWorkspaceNavigation('7').flatMap((section) => section.items.map((item) => item.to)),
+  // Not a sidebar destination, but a path the config declares and a learner
+  // reaches from the lesson list, so it is held to the same standard.
+  paths.workspaces.lessonDetail.getHref('7', '12'),
 ]
 
 function signIn() {
@@ -54,6 +63,8 @@ describe('router', () => {
       ...algebra,
       id: workspaceId,
     }))
+    vi.mocked(listLessons).mockResolvedValue(lessons)
+    vi.mocked(getLesson).mockResolvedValue(conceptFixture)
   })
 
   it('sends a signed-in learner from the app root to the workspace list', async () => {
