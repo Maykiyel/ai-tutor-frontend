@@ -3,22 +3,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router'
 
 import { paths } from '@/config/paths'
-import { renderWithRouter, screen } from '@/test/test-utils'
-
-import { getMission } from '../api/mission-api'
-import { getWorkspace } from '../api/workspace-api'
+import { getMission } from '@/lib/mission/mission-api'
 import {
   missionResponse,
   noMissionResponse,
   supersededMissionResponse,
-} from '../fixtures/mission-fixtures'
+} from '@/lib/mission/mission-fixtures'
+import { missionResponseSchema } from '@/lib/mission/mission-schema'
+import { renderWithRouter, screen } from '@/test/test-utils'
+
+import { getWorkspace } from '../api/workspace-api'
 import { workspaceResponse } from '../fixtures/workspace-fixtures'
-import { missionResponseSchema } from '../schemas/mission-schema'
 import { workspaceResponseSchema } from '../schemas/workspace-schema'
 import { WorkspaceHome } from './workspace-home'
 
 vi.mock('../api/workspace-api')
-vi.mock('../api/mission-api')
+vi.mock('@/lib/mission/mission-api')
 
 const algebra = workspaceResponseSchema.parse(workspaceResponse)
 const mission = missionResponseSchema.parse(missionResponse)

@@ -11,6 +11,20 @@ export async function listLessons(workspaceId: string): Promise<LessonList> {
 }
 
 /**
+ * Asks for the workspace's next lesson.
+ *
+ * The endpoint queues a job and answers `202`, so what comes back is an
+ * acceptance rather than a lesson — and nothing about that body is agreed, which
+ * is why nothing here parses it. There is no job id to keep and no job status to
+ * poll: the screen shows a waiting state and the list is re-read until the lesson
+ * shows up in it. If a job endpoint is agreed later, this is the only call that
+ * changes.
+ */
+export async function requestNextLesson(workspaceId: string): Promise<void> {
+  await apiClient.post(lessonEndpoints.nextForWorkspace(workspaceId))
+}
+
+/**
  * The header and the hydrated maps are parsed here, strictly for the header and
  * leniently for the maps, so a response that cannot be read fails as a request
  * and the screen shows its retryable error state. `blocks` is deliberately left
