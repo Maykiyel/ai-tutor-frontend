@@ -27,7 +27,7 @@ Use `pnpm check` before declaring work done. Individual steps: `pnpm typecheck`,
 
 **Auth.** Auth state is a Zustand store in `src/features/auth/store.ts`. The shared Axios client (`src/lib/api/client.ts`) attaches the Bearer token, and a non-auth 401 clears both auth state and the query cache. A 401 from login/register is treated as bad credentials, not an expired session. Preserve that distinction when touching the interceptor.
 
-**Tests.** Vitest and React Testing Library, with tests colocated next to the file under test (`foo.tsx` → `foo.test.tsx`). Use `src/test/test-utils.tsx` when a test needs the app providers. `src/features/example` is the disposable reference feature: mirror its structure, and delete it once real features land.
+**Tests.** Vitest and React Testing Library, with tests colocated next to the file under test (`foo.tsx` → `foo.test.tsx`). Use `src/test/test-utils.tsx` when a test needs the app providers. `src/features/auth` is the reference feature: mirror its structure. Tests call API functions against fixture responses; there is no HTTP mocking library.
 
 **Style.** Prettier, single quotes, no semicolons, trailing commas, 100 column width. Oxlint enforces rules-of-hooks. Both run in CI alongside typecheck, tests, and the build.
 
@@ -46,3 +46,7 @@ The five canonical triage roles, each label string equal to its name. See `docs/
 ### Domain docs
 
 Single-context: one root `GLOSSARY.md` plus `docs/adr/`. See `docs/agents/domain.md`.
+
+### Lesson contract
+
+`docs/lesson-schema.json` is authoritative for the lesson format and the attempt contract. `docs/lesson-format.md` explains it in prose. The backend is built by a separate developer who reads this repo: a contract change is a commit to the schema file, and nothing in prose counts as a change.
