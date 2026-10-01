@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
 /**
+ * This lives in `src/lib` rather than in either feature because two features now
+ * need it: the workspace home shows the mission, and the lesson list has to know
+ * whether a lesson can be asked for before it offers to ask. Features do not
+ * import from one another, so the shared read is promoted rather than reached into.
+ *
  * There is no shared contract for this response either. `docs/lesson-schema.json`
  * covers the lesson and the attempt only, so the shape below is the frontend's
  * own guess, derived from the data model and the guarantees in
@@ -18,12 +23,12 @@ import { z } from 'zod'
  * - `id` accepts a number or a string, like workspace ids: the column is a
  *   bigint and Laravel may serialize it either way.
  *
- * Only the fields the workspace home screen needs are described. `why` is the
- * one mission text the screen shows; `is_active` is the field that decides
+ * Only the fields these screens need are described. `why` is the one mission
+ * text a screen shows; `is_active` is the field that decides
  * whether a lesson can be asked for, because missions are revisions with
  * exactly one active per workspace (GLOSSARY.md, `docs/backend-onboarding.md`).
  * A mission the backend considers superseded is therefore not a mission to
- * this screen, however recent it looks.
+ * these screens, however recent it looks.
  */
 const missionIdSchema = z.union([z.string(), z.number()]).transform(String)
 

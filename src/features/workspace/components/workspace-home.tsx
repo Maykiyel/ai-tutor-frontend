@@ -6,10 +6,10 @@ import { Link, useParams } from 'react-router'
 import { ErrorState } from '@/components/ui/error-state'
 import { LoadingState } from '@/components/ui/loading-state'
 import { paths } from '@/config/paths'
+import { missionQueries } from '@/lib/mission/mission-queries'
+import type { Mission } from '@/lib/mission/mission-schema'
 
-import { missionQueries } from '../queries/mission-queries'
 import { workspaceQueries } from '../queries/workspace-queries'
-import type { Mission } from '../schemas/mission-schema'
 
 function ActiveMission({ mission, workspaceId }: { mission: Mission; workspaceId: string }) {
   return (

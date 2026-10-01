@@ -10,10 +10,10 @@ import { getLesson, listLessons } from '@/features/lessons/api/lesson-api'
 import { conceptFixture } from '@/features/lessons/fixtures/lesson-fixtures'
 import { lessonListResponse } from '@/features/lessons/fixtures/lesson-list-fixtures'
 import { lessonListResponseSchema } from '@/features/lessons/schemas/lesson-list-schema'
-import { getMission } from '@/features/workspace/api/mission-api'
 import { getWorkspace, listWorkspaces } from '@/features/workspace/api/workspace-api'
-import { missionResponse } from '@/features/workspace/fixtures/mission-fixtures'
-import { missionResponseSchema } from '@/features/workspace/schemas/mission-schema'
+import { getMission } from '@/lib/mission/mission-api'
+import { missionResponse } from '@/lib/mission/mission-fixtures'
+import { missionResponseSchema } from '@/lib/mission/mission-schema'
 import {
   workspaceResponse,
   workspacesResponse,
@@ -32,7 +32,7 @@ import { routes } from './router'
 vi.mock('@/features/auth/api/auth-api')
 vi.mock('@/features/lessons/api/lesson-api')
 vi.mock('@/features/workspace/api/workspace-api')
-vi.mock('@/features/workspace/api/mission-api')
+vi.mock('@/lib/mission/mission-api')
 
 const user: User = { username: 'ada', email: 'ada@example.com' }
 const workspaces = workspaceListResponseSchema.parse(workspacesResponse)

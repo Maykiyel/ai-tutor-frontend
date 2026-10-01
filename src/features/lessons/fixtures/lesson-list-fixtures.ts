@@ -1,5 +1,5 @@
 /**
- * Wire-shaped list response: inside the Laravel `data` envelope, ids as numbers
+ * Wire-shaped list responses: inside the Laravel `data` envelope, ids as numbers
  * because the column is a bigint.
  *
  * `generated_at` is in no schema of ours. It stands in for anything the backend
@@ -28,4 +28,23 @@ export const lessonListResponse = {
 
 export const emptyLessonListResponse = {
   data: [],
+}
+
+/**
+ * The same workspace after a generation finished. Lesson 5 is what the waiting
+ * state is watching for: a number higher than the highest one the list held when
+ * the learner asked.
+ */
+export const lessonListResponseWithNewLesson = {
+  data: [
+    ...lessonListResponse.data,
+    {
+      id: 14,
+      number: 5,
+      kind: 'review',
+      title: 'What you can already do',
+      minutes: 6,
+      generated_at: '2026-09-30T09:14:00Z',
+    },
+  ],
 }

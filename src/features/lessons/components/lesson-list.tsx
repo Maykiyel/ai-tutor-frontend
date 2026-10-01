@@ -7,19 +7,22 @@ import { ErrorState } from '@/components/ui/error-state'
 import { LoadingState } from '@/components/ui/loading-state'
 import { paths } from '@/config/paths'
 
+import { useNextLessonGeneration } from '../hooks/use-next-lesson-generation'
 import { lessonQueries } from '../queries/lesson-queries'
 import type { LessonListEntry } from '../schemas/lesson-list-schema'
+import type { LessonKind } from '../schemas/lesson-schema'
+import { NextLessonPanel } from './next-lesson-panel'
 
-const kindLabels: Record<LessonListEntry['kind'], string> = {
+const kindLabels: Record<LessonKind, string> = {
   concept: 'Concept',
   'hands-on': 'Hands-on',
   review: 'Review',
 }
 
 /**
- * The way in to a lesson. Generation and the waiting state belong to a later
- * ticket; what matters here is that each row is a real link to the reader, so
- * the reader is reachable from the list rather than only by deep link.
+ * A row is a real link to the reader, so a lesson is reachable by choosing it
+ * rather than only by deep link. The kind and the length are in words as well as
+ * in position, because a row has to be readable at a glance and readable aloud.
  */
 function LessonCard({ entry, workspaceId }: { entry: LessonListEntry; workspaceId: string }) {
   return (
@@ -49,6 +52,14 @@ function LessonCard({ entry, workspaceId }: { entry: LessonListEntry; workspaceI
 export function LessonList() {
   const { workspaceId = '' } = useParams()
   const query = useQuery(lessonQueries.list(workspaceId))
+  const generation = useNextLessonGeneration(workspaceId, query.data)
+
+  /*
+   * The list is ordered here rather than trusted from the wire: a generation can
+   * finish while the screen is open, and a list that gains a row in the middle is
+   * a list the learner has to re-read to find their place.
+   */
+  const lessons = query.data ? [...query.data].sort((a, b) => a.number - b.number) : []
 
   return (
     <Stack gap="lg" py="xl">
@@ -56,6 +67,14 @@ export function LessonList() {
         <Title order={1}>Lessons</Title>
         <Text c="dimmed">Each lesson is one skill and one win, at most fifteen minutes.</Text>
       </div>
+
+      <NextLessonPanel
+        workspaceId={workspaceId}
+        isGenerating={generation.isGenerating}
+        isAsking={generation.isAsking}
+        askFailed={generation.askFailed}
+        onAsk={generation.askForNextLesson}
+      />
 
       {/*
         The states are exclusive: a failed list is never also an empty one, and the
@@ -72,16 +91,16 @@ export function LessonList() {
         />
       ) : null}
 
-      {query.data?.length === 0 ? (
+      {query.data && lessons.length === 0 ? (
         <EmptyState
           title="No lessons yet"
-          description="Ask for the next lesson from your workspace home, and it will appear here when it is written."
+          description="Ask for the next lesson, and it will appear here when it is written."
         />
       ) : null}
 
-      {query.data && query.data.length > 0 ? (
+      {lessons.length > 0 ? (
         <Stack gap="sm">
-          {query.data.map((entry) => (
+          {lessons.map((entry) => (
             <LessonCard key={entry.id} entry={entry} workspaceId={workspaceId} />
           ))}
         </Stack>
