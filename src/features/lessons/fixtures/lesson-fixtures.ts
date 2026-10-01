@@ -9,6 +9,7 @@ import { parseLessonResponse } from '../schemas/lesson-schema'
 import conceptMalformedBlock from './concept-malformed-block.json'
 import conceptNewerSchemaVersion from './concept-newer-schema-version.json'
 import conceptSolvingTwoStepEquations from './concept-solving-two-step-equations.json'
+import conceptTermsAndCitations from './concept-terms-and-citations.json'
 import conceptUnknownBlock from './concept-unknown-block.json'
 import handsOnSettingUpThePracticeSet from './hands-on-setting-up-the-practice-set.json'
 import reviewReviewingTwoStepEquations from './review-reviewing-two-step-equations.json'
@@ -24,6 +25,9 @@ export const unknownBlockFixture = parseLessonResponse(conceptUnknownBlock)
 export const malformedBlockFixture = parseLessonResponse(conceptMalformedBlock)
 
 export const newerVersionFixture = parseLessonResponse(conceptNewerSchemaVersion)
+
+/** Every segment type in one lesson, including the ones that must degrade. */
+export const segmentsFixture = parseLessonResponse(conceptTermsAndCitations)
 
 /**
  * Keyed by lesson slug so a test that walks the reader by slug reads like a

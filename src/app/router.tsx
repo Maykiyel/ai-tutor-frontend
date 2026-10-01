@@ -15,6 +15,7 @@ import { WorkspaceHomePage } from './routes/workspace-home.tsx'
 import { WorkspaceLessonPage } from './routes/workspace-lesson.tsx'
 import { WorkspaceLessonsPage } from './routes/workspace-lessons.tsx'
 import { WorkspaceRecordsPage } from './routes/workspace-records.tsx'
+import { WorkspaceReferenceDocPage } from './routes/workspace-reference-doc.tsx'
 import { WorkspaceReferencesPage } from './routes/workspace-references.tsx'
 import { WorkspaceResourcesPage } from './routes/workspace-resources.tsx'
 import { WorkspaceReviewsPage } from './routes/workspace-reviews.tsx'
@@ -85,6 +86,11 @@ export const routes: RouteObject[] = [
       {
         path: paths.workspaces.references.path,
         Component: WorkspaceReferencesPage,
+      },
+      // The destination a lesson's `link` segment builds from the path config.
+      {
+        path: paths.workspaces.referenceDocDetail.path,
+        Component: WorkspaceReferenceDocPage,
       },
       {
         path: paths.workspaces.resources.path,

@@ -40,6 +40,27 @@ conversation:
    renderer. A new block type that old readers already skip is not a break, so it
    does not warrant a bump. See ADR-0002.
 
+## Adding a segment type
+
+Segments are inline content inside a paragraph or callout, and they are not
+blocks: they have no `type`-to-component registry, because a segment never stands
+alone. `./components/segments.tsx` is the one place a segment becomes React, with
+one `switch` case per type. Adding a sixth type is:
+
+1. **Add the schema** to `../schemas/lesson-schema.ts`, mirroring the new
+   `$defs` entry in `docs/lesson-schema.json`, and add it to `segmentSchema`.
+2. **Add a case** in `segments.tsx` that renders it.
+3. **Resolve hydrated records through `LessonContext`,** never through a prop. The
+   ids in a segment point at records the response already carries, so a segment
+   never makes a request; an id the response does not carry renders the
+   segment's own words and is logged.
+4. **Test it at the screen seam** in `../components/lesson-reader.test.tsx`,
+   through a fixture that carries the new segment.
+
+There is deliberately no `default` case. The union is exhaustive, so a new type is
+a typecheck error in that switch rather than a segment that silently reads as
+plain text.
+
 ## Invariants a new block must not break
 
 - Lesson JSON carries meaning only. No colour, size, or spacing is read from the
