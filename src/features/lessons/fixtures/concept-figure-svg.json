@@ -1,0 +1,46 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 8,
+    "kind": "concept",
+    "slug": "figure-svg",
+    "title": "What one step looks like",
+    "skill": "Read a diagram of an equation the way you would read a sentence about it.",
+    "missionLink": "Your mission is full of problems that look balanced and are not. This is the picture of what balanced means.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It draws the balance with the weights still on it."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "The balance"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "An equation is a claim that two sides weigh the same. Here is what that looks like before you start moving anything."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "kind": "svg",
+        "source": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 120\" role=\"img\"><line x1=\"20\" y1=\"80\" x2=\"220\" y2=\"80\" stroke=\"currentColor\" stroke-width=\"2\"/><rect x=\"40\" y=\"40\" width=\"60\" height=\"40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><rect x=\"140\" y=\"40\" width=\"60\" height=\"40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><text x=\"70\" y=\"65\" text-anchor=\"middle\" font-size=\"12\">2x + 3</text><text x=\"170\" y=\"65\" text-anchor=\"middle\" font-size=\"12\">11</text></svg>",
+        "alt": "A balance with 2 unknown weights on one side",
+        "caption": "Whatever you add to one side, you add to the other."
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

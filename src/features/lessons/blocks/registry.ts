@@ -3,14 +3,18 @@ import type { ComponentType } from 'react'
 import {
   calloutBlockSchema,
   codeBlockSchema,
+  figureBlockSchema,
   headingBlockSchema,
   paragraphBlockSchema,
+  tableBlockSchema,
   type LessonBlock,
 } from '../schemas/lesson-schema'
 import { CalloutBlockView } from './components/callout-block'
 import { CodeBlockView } from './components/code-block'
+import { FigureBlockView } from './components/figure-block'
 import { HeadingBlockView } from './components/heading-block'
 import { ParagraphBlockView } from './components/paragraph-block'
+import { TableBlockView } from './components/table-block'
 
 /**
  * A block component takes the parsed block and nothing else. Anything a block
@@ -42,6 +46,8 @@ export const blockRegistry = {
   heading: { schema: headingBlockSchema, Component: HeadingBlockView },
   callout: { schema: calloutBlockSchema, Component: CalloutBlockView },
   code: { schema: codeBlockSchema, Component: CodeBlockView },
+  figure: { schema: figureBlockSchema, Component: FigureBlockView },
+  table: { schema: tableBlockSchema, Component: TableBlockView },
 }
 
 export type RegisteredBlockType = keyof typeof blockRegistry
@@ -62,11 +68,11 @@ export type ParsedLessonBlock = {
 /**
  * True only for a type this build has a component for.
  *
- * The registry is a strict subset of the contract's nine types: figure, table,
- * steps, quiz, and recall arrive with their own tickets. A block of one of those
- * types arriving early is not a contract violation, so it takes the same path as
- * a genuinely unknown type — it renders nothing, is counted as skipped so the
- * learner is told, and is logged. Nothing breaks when a ticket lands late.
+ * The registry is a strict subset of the contract's nine types: steps, quiz, and
+ * recall arrive with their own tickets. A block of one of those types arriving
+ * early is not a contract violation, so it takes the same path as a genuinely
+ * unknown type — it renders nothing, is counted as skipped so the learner is
+ * told, and is logged. Nothing breaks when a ticket lands late.
  */
 export function isRegisteredBlockType(type: unknown): type is RegisteredBlockType {
   return typeof type === 'string' && Object.hasOwn(blockRegistry, type)

@@ -6,9 +6,16 @@
  */
 import { parseLessonResponse } from '../schemas/lesson-schema'
 
+import conceptFigureImage from './concept-figure-image.json'
+import conceptFigureMermaid from './concept-figure-mermaid.json'
+import conceptFigureSvg from './concept-figure-svg.json'
+import conceptFigureSvgHostile from './concept-figure-svg-hostile.json'
+import conceptFigureWide from './concept-figure-wide.json'
 import conceptMalformedBlock from './concept-malformed-block.json'
 import conceptNewerSchemaVersion from './concept-newer-schema-version.json'
 import conceptSolvingTwoStepEquations from './concept-solving-two-step-equations.json'
+import conceptTableComparison from './concept-table-comparison.json'
+import conceptTableRagged from './concept-table-ragged.json'
 import conceptTermsAndCitations from './concept-terms-and-citations.json'
 import conceptUnknownBlock from './concept-unknown-block.json'
 import handsOnSettingUpThePracticeSet from './hands-on-setting-up-the-practice-set.json'
@@ -28,6 +35,48 @@ export const newerVersionFixture = parseLessonResponse(conceptNewerSchemaVersion
 
 /** Every segment type in one lesson, including the ones that must degrade. */
 export const segmentsFixture = parseLessonResponse(conceptTermsAndCitations)
+
+/**
+ * A picture the lesson fetched by url, and beside it a picture whose url the
+ * payload wrote as a `javascript:` one. Both are the same block type, so one
+ * lesson holds them together.
+ */
+export const figureImageFixture = parseLessonResponse(conceptFigureImage)
+
+/** Inline svg the backend already sanitised, rendered as a drawing. */
+export const figureSvgFixture = parseLessonResponse(conceptFigureSvg)
+
+/**
+ * Inline svg carrying a script element, three event handlers, a `javascript:`
+ * href, and a `data:` image. The backend sanitised this row too, and five
+ * bypasses in that sanitizer's history is why the frontend sanitises again. See
+ * ADR-0001.
+ */
+export const hostileSvgFixture = parseLessonResponse(conceptFigureSvgHostile)
+
+/** A drawing much wider than the text column, which scrolls inside its figure. */
+export const wideFigureFixture = parseLessonResponse(conceptFigureWide)
+
+/**
+ * Three diagrams in one lesson, because a diagram can go wrong in three ways and
+ * the reader has to survive all of them: one that draws, one whose labels and
+ * click callbacks the payload tried to smuggle in, and one mermaid cannot parse
+ * at all. Drawing them is slow, so one lesson holds all three.
+ */
+export const figureMermaidFixture = parseLessonResponse(conceptFigureMermaid)
+
+/**
+ * A comparison wide enough that it has to scroll, which is the normal case for a
+ * table in a lesson: more columns than a phone-width column of prose can hold.
+ */
+export const tableComparisonFixture = parseLessonResponse(conceptTableComparison)
+
+/**
+ * Three headers, and rows of two, three, and four cells. The contract says every
+ * row matches the header length, so this lesson is one the backend should have
+ * rejected — kept here because the reader still has to show it.
+ */
+export const raggedTableFixture = parseLessonResponse(conceptTableRagged)
 
 /**
  * Keyed by lesson slug so a test that walks the reader by slug reads like a

@@ -105,10 +105,42 @@ export const codeBlockSchema = z.object({
   code: z.string(),
 })
 
+/**
+ * A figure is a thing rather than a sentence: inline svg, a mermaid diagram, or
+ * a picture at a url. All three carry `alt`, which the contract says is real alt
+ * text and never a placeholder, so the reader always has words to fall back on
+ * even when the figure itself cannot be shown. Mirrors `figureBlock` in
+ * `docs/lesson-schema.json`.
+ */
+export const figureBlockSchema = z.object({
+  type: z.literal('figure'),
+  kind: z.enum(['svg', 'mermaid', 'image']),
+  source: z.string(),
+  alt: z.string(),
+  caption: z.string().optional(),
+})
+
+/**
+ * Headers and rows, each cell a string. Mirrors `tableBlock` in
+ * `docs/lesson-schema.json`.
+ *
+ * Row length is **not** enforced here, even though the contract says every row
+ * matches the header length. The backend is the layer that rejects such a lesson
+ * at write time; the layer that has to cope with one is the reader, and a ragged
+ * row is a row the learner can still read. See ADR-0002.
+ */
+export const tableBlockSchema = z.object({
+  type: z.literal('table'),
+  headers: z.array(z.string()),
+  rows: z.array(z.array(z.string())),
+})
+
 export type ParagraphBlock = z.infer<typeof paragraphBlockSchema>
 export type HeadingBlock = z.infer<typeof headingBlockSchema>
 export type CalloutBlock = z.infer<typeof calloutBlockSchema>
 export type CodeBlock = z.infer<typeof codeBlockSchema>
+export type FigureBlock = z.infer<typeof figureBlockSchema>
+export type TableBlock = z.infer<typeof tableBlockSchema>
 
 /**
  * Every block type `docs/lesson-schema.json` defines, fixed at nine. This is the
@@ -133,14 +165,16 @@ export type LessonBlockType = z.infer<typeof lessonBlockTypeSchema>
 
 /**
  * The blocks this build has a schema for. It is a subset of the nine contract
- * types: figure, table, steps, quiz, and recall are defined by the contract and
- * arrive with their own tickets. `LessonBlock` grows as each lands.
+ * types: steps, quiz, and recall are defined by the contract and arrive with
+ * their own tickets. `LessonBlock` grows as each lands.
  */
 export type LessonBlock =
   | z.infer<typeof paragraphBlockSchema>
   | z.infer<typeof headingBlockSchema>
   | z.infer<typeof calloutBlockSchema>
   | z.infer<typeof codeBlockSchema>
+  | z.infer<typeof figureBlockSchema>
+  | z.infer<typeof tableBlockSchema>
 
 /**
  * The lesson without its blocks. `blocks` is deliberately absent: it is the one

@@ -1,0 +1,46 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 11,
+    "kind": "concept",
+    "slug": "figure-mermaid",
+    "title": "The move, as a diagram",
+    "skill": "Read a diagram of an equation, and see the same thing you would see written out.",
+    "missionLink": "You said the algebra goes in circles. A diagram is the part of the loop you can see.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It draws the same two steps as arrows."
+    },
+    "blocks": [
+      {
+        "type": "figure",
+        "kind": "mermaid",
+        "source": "flowchart LR\n  start[\"Add 4 to both sides\"] --> answer[\"x = 2\"]",
+        "alt": "Two boxes and an arrow, from 2x + 3 = 11 to x = 2",
+        "caption": "One move at a time, and never on one side only."
+      },
+      {
+        "type": "figure",
+        "kind": "mermaid",
+        "source": "flowchart LR\n  a[\"<b>Undo</b> addition\"] --> b[\"Divide by 2\"]\n  click a \"javascript:window.__lessonPwned = true\"",
+        "alt": "A diagram whose label carries markup and whose box carries a click",
+        "caption": "The label is words, and the box does nothing when you click it."
+      },
+      {
+        "type": "figure",
+        "kind": "mermaid",
+        "source": "this is not a diagram at all",
+        "alt": "A diagram the model wrote wrong",
+        "caption": "It never arrived, so its caption is all there is."
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}
