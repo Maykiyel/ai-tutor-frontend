@@ -1,5 +1,4 @@
-import { Code, Text } from '@mantine/core'
-import { Fragment } from 'react'
+import { Code } from '@mantine/core'
 
 import type { Segment } from '../../schemas/lesson-schema'
 
@@ -10,6 +9,9 @@ import type { Segment } from '../../schemas/lesson-schema'
  * output from web search results, which are untrusted, so nothing here may
  * become markup. See ADR-0001.
  *
+ * Renders into whatever text element the caller already provides, so a paragraph
+ * or callout keeps one typographic context rather than nesting one per segment.
+ *
  * Scope note for the segment ticket that follows: this renders `text` and inline
  * `code`, and degrades the remaining three segment types to their `text`, which
  * is exactly the fallback the spec requires for a segment the app cannot resolve.
@@ -18,13 +20,11 @@ import type { Segment } from '../../schemas/lesson-schema'
  */
 export function SegmentContent({ segments }: { segments: Segment[] }) {
   return (
-    <Text component="span">
+    <>
       {segments.map((segment, index) => (
-        <Fragment key={index}>
-          <SegmentText segment={segment} />
-        </Fragment>
+        <SegmentText key={index} segment={segment} />
       ))}
-    </Text>
+    </>
   )
 }
 
