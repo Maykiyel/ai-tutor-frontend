@@ -51,7 +51,7 @@ src/
 │   └── env.ts
 │
 ├── features/
-│   ├── example/       # disposable reference feature
+│   ├── auth/          # reference feature
 │   └── <feature>/
 │
 ├── lib/
@@ -74,21 +74,18 @@ For TanStack Query, keep API functions and `queryOptions` / `mutationOptions` de
 
 Create the React Router Data Mode router in `src/app/router.tsx` and keep route definitions there.
 
-Use React Hook Form with Zod for validated forms. `src/features/example` contains a disposable reference implementation.
+Use React Hook Form with Zod for validated forms. `src/features/auth` is the reference implementation.
 
 Write component tests with Vitest and React Testing Library. Use `src/test/test-utils.tsx` when a test needs the app providers.
 
 ## Feature example
 
-`src/features/example` demonstrates:
+`src/features/auth` demonstrates:
 
 - feature-owned API functions
-- `queryOptions` for queries
 - `mutationOptions` for mutations
 - React Hook Form + Zod validation
 - feature-local components and schemas
-
-Remove this directory when starting a real project.
 
 ## Authentication
 

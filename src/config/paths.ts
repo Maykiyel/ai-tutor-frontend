@@ -4,31 +4,49 @@ export const paths = {
     getHref: () => '/',
   },
 
-  dashboard: {
-    path: '/dashboard',
-    getHref: () => '/dashboard',
-  },
-
-  features: {
+  workspaces: {
     root: {
-      path: '/features',
-      getHref: () => '/features',
+      path: '/workspaces',
+      getHref: () => '/workspaces',
     },
-    new: {
-      path: '/features/new',
-      getHref: () => '/features/new',
+    create: {
+      path: '/workspaces/new',
+      getHref: () => '/workspaces/new',
+    },
+    home: {
+      path: '/workspaces/:workspaceId/home',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/home`,
+    },
+    lessons: {
+      path: '/workspaces/:workspaceId/lessons',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/lessons`,
+    },
+    records: {
+      path: '/workspaces/:workspaceId/learning-records',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/learning-records`,
+    },
+    glossary: {
+      path: '/workspaces/:workspaceId/glossary',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/glossary`,
+    },
+    references: {
+      path: '/workspaces/:workspaceId/reference-docs',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/reference-docs`,
+    },
+    resources: {
+      path: '/workspaces/:workspaceId/resources',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/resources`,
+    },
+    reviews: {
+      path: '/workspaces/:workspaceId/reviews',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/reviews`,
+    },
+    settings: {
+      path: '/workspaces/:workspaceId/settings',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/settings`,
     },
   },
 
-  activity: {
-    path: '/activity',
-    getHref: () => '/activity',
-  },
-
-  settings: {
-    path: '/settings',
-    getHref: () => '/settings',
-  },
   auth: {
     login: {
       path: '/login',
@@ -48,43 +66,12 @@ export const navigation = [
     label: 'Main',
     items: [
       {
-        label: 'Home',
-        to: paths.home.getHref(),
+        label: 'Workspaces',
+        to: paths.workspaces.root.getHref(),
       },
       {
-        label: 'Dashboard',
-        to: paths.dashboard.getHref(),
-      },
-    ],
-  },
-  {
-    label: 'Workspace',
-    items: [
-      {
-        label: 'Features',
-        children: [
-          {
-            label: 'All features',
-            to: paths.features.root.getHref(),
-          },
-          {
-            label: 'New feature',
-            to: paths.features.new.getHref(),
-          },
-        ],
-      },
-      {
-        label: 'Activity',
-        to: paths.activity.getHref(),
-      },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      {
-        label: 'Settings',
-        to: paths.settings.getHref(),
+        label: 'New workspace',
+        to: paths.workspaces.create.getHref(),
       },
     ],
   },

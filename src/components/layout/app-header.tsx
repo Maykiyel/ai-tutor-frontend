@@ -7,12 +7,7 @@ type AppHeaderProps = PropsWithChildren<{
   toggle: () => void
 }>
 
-export function AppHeader({
-  title = 'Hackathon Starter',
-  opened,
-  toggle,
-  children,
-}: AppHeaderProps) {
+export function AppHeader({ title = 'AI Tutor', opened, toggle, children }: AppHeaderProps) {
   return (
     <AppShell.Header px="md">
       <Group h="100%" justify="space-between">
