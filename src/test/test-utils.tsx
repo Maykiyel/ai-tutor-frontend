@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactElement } from 'react'
+import { useState, type PropsWithChildren, type ReactElement } from 'react'
 import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, type RenderOptions } from '@testing-library/react'
@@ -17,7 +17,16 @@ function createTestQueryClient() {
 }
 
 function TestProviders({ children }: PropsWithChildren) {
-  const queryClient = createTestQueryClient()
+  // One client per mounted wrapper, not one per render. Building it in the
+  // render body threw the cache away on every re-render, so a query that had
+  // already resolved went back to `isPending` the moment anything else caused a
+  // render. A screen that renders its data then its empty or error branch would
+  // oscillate between them, and an assertion could catch it mid-swing — which is
+  // how a correct screen produced an intermittent "unable to find" failure.
+  //
+  // The lazy initialiser gives every render its own client while guaranteeing it
+  // is created exactly once per mount.
+  const [queryClient] = useState(createTestQueryClient)
 
   return (
     // `env="test"` makes Mantine skip transitions outright. Without it a dropdown
