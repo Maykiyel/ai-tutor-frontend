@@ -184,7 +184,11 @@ function send(res: ServerResponse, { status, body }: MockResponse): void {
   res.end(JSON.stringify(body))
 }
 
-function mockMiddleware(req: IncomingMessage, res: ServerResponse): Promise<void> {
+function mockMiddleware(
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: (error?: unknown) => void,
+): Promise<void> {
   const method = req.method ?? 'GET'
   const path = (req.url ?? '').split('?')[0]
 
@@ -193,10 +197,12 @@ function mockMiddleware(req: IncomingMessage, res: ServerResponse): Promise<void
   )
 
   if (!route) {
-    // Anything not under /api is the app's own routes, which this must not touch.
+    // Everything that is not an API call belongs to the app, so it has to be passed
+    // along untouched. Answering it here instead — even with a 404 — takes the
+    // document itself out of the dev server's hands and leaves a working API
+    // serving a page that will not load.
     if (!path.startsWith('/api/')) {
-      res.statusCode = 404
-      res.end()
+      next()
       return Promise.resolve()
     }
 
@@ -231,7 +237,7 @@ export function mockApi(): Plugin {
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        void mockMiddleware(req, res).catch(next)
+        void mockMiddleware(req, res, next).catch(next)
       })
 
       // No port in this banner: `config.server.port` is the port that was asked
