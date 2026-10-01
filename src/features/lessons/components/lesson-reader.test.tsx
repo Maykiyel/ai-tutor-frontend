@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router'
 
 import { paths } from '@/config/paths'
-import { renderWithRouter, screen, within } from '@/test/test-utils'
+import { renderWithRouter, screen, waitFor, within } from '@/test/test-utils'
 
 import { getLesson } from '../api/lesson-api'
 import {
@@ -12,6 +12,7 @@ import {
   malformedBlockFixture,
   newerVersionFixture,
   reviewFixture,
+  segmentsFixture,
   unknownBlockFixture,
 } from '../fixtures/lesson-fixtures'
 import { LessonReader } from './lesson-reader'
@@ -330,6 +331,181 @@ describe('LessonReader', () => {
       'inverse operation',
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // The id is logged, so whoever reads the console can see the response and
+    // the lesson disagree about what the workspace glossary holds.
+    expect(
+      vi
+        .mocked(console.warn)
+        .mock.calls.map((call) => String(call[0]))
+        .filter((message) => message.includes('glossary term 4')),
+    ).toHaveLength(1)
+  })
+
+  it('shows a term definition on hover and on keyboard focus, and closes it again', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(conceptFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' })
+
+    const term = screen.getByRole('button', { name: 'inverse operation' })
+    // The card is a dialog, and it is not in the document until the learner asks
+    // for it: a definition that covers the lesson before anyone asked is worse
+    // than no definition.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await learner.hover(term)
+
+    const hovered = await screen.findByRole('dialog')
+    expect(hovered).toHaveTextContent(
+      'The operation that undoes another one: subtraction undoes addition, and division undoes multiplication.',
+    )
+    // The aliases to avoid travel with the definition, so the learner keeps one
+    // word per idea without having to remember which word the lessons chose.
+    expect(hovered).toHaveTextContent('Avoid')
+    expect(hovered).toHaveTextContent('opposite operation')
+    expect(hovered).toHaveTextContent('reverse operation')
+
+    await learner.unhover(term)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('gives a keyboard learner the same definition as a pointing one', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(conceptFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' })
+
+    const term = screen.getByRole('button', { name: 'inverse operation' })
+
+    // Tabbed to rather than focused directly, so the test proves the term is
+    // reachable by keyboard at all and not merely focusable by hand.
+    for (let presses = 0; presses < 20 && document.activeElement !== term; presses += 1) {
+      await learner.tab()
+    }
+    expect(term).toHaveFocus()
+
+    const card = await screen.findByRole('dialog')
+    expect(card).toHaveTextContent('The operation that undoes another one')
+
+    await learner.tab()
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('ends the lesson with the sources it cites, and says which one to read first', async () => {
+    vi.mocked(getLesson).mockResolvedValue(conceptFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' })
+
+    const sources = screen.getByRole('region', { name: 'Sources' })
+    const source = within(sources).getByRole('link', { name: 'Two-step equations, worked slowly' })
+
+    // Every entry carries the title, because a citation whose source has no name
+    // is a citation the learner cannot choose between.
+    expect(source).toHaveAttribute('href', 'https://example.org/two-step-equations')
+    // A source is somebody else's page, so it opens away from the app and cannot
+    // reach back into it.
+    expect(source).toHaveAttribute('target', '_blank')
+    expect(source.getAttribute('rel')).toContain('noopener')
+    expect(source.getAttribute('rel')).toContain('noreferrer')
+
+    // The recommendation is the lesson's own claim about the source, so it is
+    // shown as words rather than as a highlight the learner has to interpret.
+    expect(sources).toHaveTextContent('Read this first')
+    expect(sources).toHaveTextContent(
+      'It works one equation at a time, which is the pace you read at.',
+    )
+  })
+
+  it('turns a citation into a link to its source', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    const citation = screen.getByRole('link', { name: 'the terms in order' })
+
+    expect(citation).toHaveAttribute('href', 'https://example.org/terms-in-order')
+    expect(citation).toHaveAttribute('target', '_blank')
+    expect(citation.getAttribute('rel')).toContain('noopener')
+    expect(citation.getAttribute('rel')).toContain('noreferrer')
+  })
+
+  it('never follows a source url that is not http or https', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    // The url in that source is a javascript: one. It is not rendered as a link
+    // in the prose, and not in the source list either: there is nowhere safe for
+    // a learner to click here. See ADR-0001.
+    expect(screen.queryByRole('link', { name: 'an unsanitised source' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Worked through in/, { exact: false })).toHaveTextContent(
+      'an unsanitised source',
+    )
+    expect(
+      within(screen.getByRole('region', { name: 'Sources' })).queryByRole('link', {
+        name: 'A source whose url was never checked',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('sends a cross-reference to the lesson and the reference doc it names', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    expect(screen.getByRole('link', { name: 'the practice set' })).toHaveAttribute(
+      'href',
+      paths.workspaces.lessonDetail.getHref(WORKSPACE_ID, '4'),
+    )
+    expect(screen.getByRole('link', { name: 'the notation cheat sheet' })).toHaveAttribute(
+      'href',
+      paths.workspaces.referenceDocDetail.getHref(WORKSPACE_ID, '5'),
+    )
+  })
+
+  it('reads a cross-reference it cannot resolve as plain words, rather than sending the learner nowhere', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    expect(
+      screen.queryByRole('link', { name: 'a lesson that no longer exists' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/Nothing in this lesson points at/)).toHaveTextContent(
+      'a lesson that no longer exists',
+    )
+  })
+
+  it('reads inline code as an identifier without making it shout', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    const identifier = screen.getByText('value')
+
+    // A `code` element: selectable and copyable, and inert — never a control and
+    // never markup. See ADR-0001.
+    expect(identifier.tagName).toBe('CODE')
+    expect(identifier.closest('button, a')).toBeNull()
   })
 
   it('lets the learner get back to the lesson list', async () => {

@@ -1,0 +1,100 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 6,
+    "kind": "concept",
+    "slug": "terms-and-citations",
+    "title": "Terms and citations",
+    "skill": "Name a term the way the lessons name it, and say where a claim came from.",
+    "missionLink": "Your mission is to write up what you have learned, so the words you choose have to be the ones you can defend.",
+    "minutes": 5,
+    "primarySource": {
+      "resourceId": 21,
+      "why": "It lists the terms in the order you meet them, which is the order you need them in."
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "level": 2,
+        "text": "One word per idea"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "The number you write down is the " },
+          { "type": "code", "text": "value" },
+          {
+            "type": "text",
+            "text": " you solved for. Writing it as a letter keeps the equation honest."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "A " },
+          { "type": "term", "termId": 9, "text": "coefficient" },
+          {
+            "type": "text",
+            "text": " is the number a letter is multiplied by, and it is not the letter itself."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Worked through in " },
+          { "type": "cite", "resourceId": 21, "text": "the terms in order" },
+          { "type": "text", "text": ", and collected again in " },
+          { "type": "cite", "resourceId": 22, "text": "an unsanitised source" }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Set it up yourself in " },
+          { "type": "link", "to": "lesson", "targetId": 4, "text": "the practice set" },
+          { "type": "text", "text": " before you trust the method." }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Look the notation up in " },
+          { "type": "link", "to": "reference", "targetId": 5, "text": "the notation cheat sheet" },
+          { "type": "text", "text": " when you only need the shape of it." }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Nothing in this lesson points at " },
+          {
+            "type": "link",
+            "to": "lesson",
+            "targetId": 0,
+            "text": "a lesson that no longer exists"
+          },
+          { "type": "text", "text": ", so those words have to read as ordinary prose." }
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "9": {
+      "term": "coefficient",
+      "definition": "The number a letter is multiplied by: in 3x + 5 = 20 the coefficient is 3.",
+      "avoid": ["multiplier", "factor"]
+    }
+  },
+  "resources": {
+    "21": {
+      "title": "Terms in the order you meet them",
+      "url": "https://example.org/terms-in-order"
+    },
+    "22": {
+      "title": "A source whose url was never checked",
+      "url": "javascript:alert('never a link')"
+    }
+  }
+}

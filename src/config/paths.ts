@@ -38,6 +38,13 @@ export const paths = {
       path: '/workspaces/:workspaceId/reference-docs',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/reference-docs`,
     },
+    // The destination a lesson's `link` segment points at. Declared here so the
+    // segment builds its href from the path config rather than writing a url.
+    referenceDocDetail: {
+      path: '/workspaces/:workspaceId/reference-docs/:referenceDocId',
+      getHref: (workspaceId: string, referenceDocId: string) =>
+        `/workspaces/${workspaceId}/reference-docs/${referenceDocId}`,
+    },
     resources: {
       path: '/workspaces/:workspaceId/resources',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/resources`,
