@@ -9,6 +9,7 @@
   "packageManager": "pnpm@12.6.0",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --config vite.mock.config.ts",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "oxlint .",
