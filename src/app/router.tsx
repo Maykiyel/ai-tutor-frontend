@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 
 import { paths } from '@/config/paths'
-import { redirectAuthenticated } from '@/features/auth/middleware/auth-middleware'
+import { redirectAuthenticated, requireAuth } from '@/features/auth/middleware/auth-middleware'
 
 import App from './app.tsx'
 import { RootErrorBoundary } from './error-boundary.tsx'
@@ -27,6 +27,10 @@ export const router = createBrowserRouter([
     path: paths.home.path,
     Component: App,
     ErrorBoundary: RootErrorBoundary,
+    // The whole app sits behind auth. Middleware on the layout route runs for
+    // every child, including the catch-all, so an unauthenticated deep link
+    // lands on /login with a redirectTo back to where it was headed.
+    middleware: [requireAuth],
     children: [
       {
         index: true,

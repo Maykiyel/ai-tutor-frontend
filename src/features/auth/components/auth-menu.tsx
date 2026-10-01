@@ -1,7 +1,4 @@
-import { Avatar, Button, Group, Menu, Text } from '@mantine/core'
-import { Link } from 'react-router'
-
-import { paths } from '@/config/paths'
+import { Avatar, Group, Menu, Text } from '@mantine/core'
 
 import { useAuth } from '../hooks/use-auth'
 import { LogoutButton } from './logout-button'
@@ -11,19 +8,13 @@ function getInitials(username: string): string {
 }
 
 export function AuthMenu() {
-  const { user, isAuthenticated } = useAuth()
+  const { user } = useAuth()
 
-  if (!isAuthenticated || !user) {
-    return (
-      <Group gap="xs">
-        <Button component={Link} to={paths.auth.login.getHref()} variant="default">
-          Sign in
-        </Button>
-        <Button component={Link} to={paths.auth.register.getHref()}>
-          Get started
-        </Button>
-      </Group>
-    )
+  // The AppShell only renders behind requireAuth, so a signed-in user is
+  // always present here. This guard satisfies the type checker; it is not a
+  // state a visitor can reach.
+  if (!user) {
+    return null
   }
 
   return (
