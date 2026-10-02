@@ -114,6 +114,13 @@ export const recallFixture = parseLessonResponse(conceptRecall)
  * Step ids, question ids, and prompt ids are the ones `attempt-result-fixtures.ts`
  * answers for, so the two fixtures are a matched pair: what was sent and what came
  * back for the same visit.
+ *
+ * It also carries every other block type the hands-on recipe allows — a callout,
+ * a heading, code, a table and a figure — and prose with a glossary term, two
+ * citations and a cross-reference, so it is the one lesson in which every control a
+ * learner can reach appears at once. That is what the keyboard walk in
+ * `lesson-accessibility.test.tsx` needs: a lesson a learner can read end to end
+ * with nothing but Tab, Space, Enter and the arrow keys.
  */
 export const attemptFixture = parseLessonResponse(handsOnAnswersAndTheChecklist)
 

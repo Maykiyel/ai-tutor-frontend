@@ -7,11 +7,15 @@ import { paths } from '@/config/paths'
 import { renderWithRouter, screen, waitFor } from '@/test/test-utils'
 
 import { getLesson, submitAttempt } from '../api/lesson-api'
+import { attemptResultResponse } from '../fixtures/attempt-result-fixtures'
 import {
+  attemptFixture,
   handsOnFixture,
   segmentsFixture,
   tableComparisonFixture,
 } from '../fixtures/lesson-fixtures'
+import { parseAttemptResult } from '../schemas/attempt-schema'
+import type { ParsedLessonResponse } from '../schemas/lesson-schema'
 import { LessonReader } from './lesson-reader'
 
 // The seam: the feature's own API module, stubbed with a fixture response.
@@ -51,11 +55,152 @@ async function tabTo(learner: UserEvent, element: HTMLElement, limit = 40) {
   expect(element).toHaveFocus()
 }
 
+type QuizQuestionPayload = {
+  id: string
+  prompt: string
+  options: { id: string; text: string }[]
+}
+
+/** The lesson as stored, so the walk below is read off the payload rather than retyped. */
+function payloadOf(fixture: ParsedLessonResponse) {
+  const blocks = fixture.lesson.blocks as { type?: string }[]
+  const quiz = blocks.find((block) => block.type === 'quiz') as {
+    questions: QuizQuestionPayload[]
+  }
+  const steps = blocks.find((block) => block.type === 'steps') as {
+    items: { instruction: string }[]
+  }
+  const recalls = blocks.filter((block) => block.type === 'recall') as { prompt: string }[]
+
+  return { questions: quiz.questions, steps: steps.items, recalls }
+}
+
+/** A stop in the tab order, named the way a screen reader names it. */
+type Stop = {
+  role: 'link' | 'button' | 'group' | 'checkbox' | 'radio' | 'textbox'
+  name: string
+  /** What the learner does once focus is there, and what they hear back. */
+  then?: () => Promise<void>
+}
+
 describe('the reader, by keyboard and by ear', () => {
   beforeEach(() => {
     vi.mocked(getLesson).mockReset()
     vi.mocked(submitAttempt).mockReset()
     vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  it('reads a whole lesson with the keyboard alone: every term, link, scrolling block and practice control, in reading order', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const { questions, steps, recalls } = payloadOf(attemptFixture)
+    const [q1, q2, q3] = questions
+    const definition = attemptFixture.terms['4'].definition
+
+    // Every stop Tab makes, in order, from the top of the lesson to the submit
+    // action. Exact, not "eventually": a control missing from this list is one a
+    // keyboard learner cannot reach, and an extra stop is one they did not ask for.
+    const stops: Stop[] = [
+      { role: 'link', name: 'All lessons' },
+      {
+        role: 'button',
+        name: 'inverse operation',
+        // The definition card opens on focus, and the ear gets it too.
+        then: async () => {
+          expect(await screen.findByRole('dialog')).toHaveTextContent(definition)
+          expect(document.activeElement).toHaveAccessibleDescription(definition)
+        },
+      },
+      {
+        role: 'link',
+        name: 'the worked examples show',
+        // ...and closes on blur.
+        then: async () => {
+          await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        },
+      },
+      { role: 'link', name: 'solving two-step equations' },
+      { role: 'link', name: 'one move at a time' },
+      { role: 'group', name: 'Code sample, python' },
+      { role: 'group', name: 'Table: Move, Undoes' },
+      {
+        role: 'group',
+        name: 'Figure: A balance with 2x + 3 on one side and 11 on the other, and an arrow for each move.',
+      },
+      {
+        role: 'checkbox',
+        name: steps[0].instruction,
+        then: async () => {
+          await learner.keyboard(' ')
+          expect(screen.getByRole('checkbox', { name: steps[0].instruction })).toBeChecked()
+        },
+      },
+      { role: 'checkbox', name: steps[1].instruction },
+      { role: 'checkbox', name: steps[2].instruction },
+      {
+        // One stop per question. Space picks the option under focus, and the
+        // feedback arrives in the live region named after the question.
+        role: 'radio',
+        name: q1.options[0].text,
+        then: async () => {
+          await learner.keyboard(' ')
+          expect(screen.getByRole('status', { name: q1.prompt })).toHaveTextContent('Correct')
+        },
+      },
+      {
+        role: 'radio',
+        name: q2.options[0].text,
+        // The arrow keys move within a question and choose as they go.
+        then: async () => {
+          await learner.keyboard('{ArrowDown}')
+          expect(screen.getByRole('radio', { name: q2.options[1].text })).toHaveFocus()
+          expect(screen.getByRole('status', { name: q2.prompt })).toHaveTextContent('Not quite')
+        },
+      },
+      // Left unanswered: tabbing past a question is allowed.
+      { role: 'radio', name: q3.options[0].text },
+      {
+        role: 'textbox',
+        name: recalls[0].prompt,
+        then: async () => {
+          await learner.keyboard('Order matters.')
+        },
+      },
+      { role: 'textbox', name: recalls[1].prompt },
+      // The sources list, last before the submit action.
+      { role: 'link', name: 'Two-step equations, worked slowly' },
+      { role: 'link', name: 'Inverse operations, one at a time' },
+      {
+        role: 'button',
+        name: 'Send my answers',
+        then: async () => {
+          await learner.keyboard('{Enter}')
+          expect(
+            await screen.findByRole('heading', { level: 2, name: 'How your answers went' }),
+          ).toBeInTheDocument()
+        },
+      },
+    ]
+
+    for (const stop of stops) {
+      await learner.tab()
+
+      const expected = screen.getByRole(stop.role, { name: stop.name })
+      expect(document.activeElement, `Tab should reach the ${stop.role} "${stop.name}" next`).toBe(
+        expected,
+      )
+
+      await stop.then?.()
+    }
+
+    // One attempt went out, carrying what was done by keyboard.
+    expect(submitAttempt).toHaveBeenCalledTimes(1)
   })
 
   it('reads a term its definition when focus lands on it, and Escape closes the card without moving focus', async () => {
