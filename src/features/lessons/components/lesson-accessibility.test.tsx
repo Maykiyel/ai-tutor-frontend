@@ -4,15 +4,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router'
 
 import { paths } from '@/config/paths'
-import { renderWithRouter, screen, waitFor } from '@/test/test-utils'
+import { renderWithRouter, screen, waitFor, within } from '@/test/test-utils'
 
 import { getLesson, submitAttempt } from '../api/lesson-api'
 import { attemptResultResponse } from '../fixtures/attempt-result-fixtures'
 import {
   attemptFixture,
+  figureImageFixture,
+  figureSvgFixture,
   handsOnFixture,
+  hostileSvgFixture,
   segmentsFixture,
   tableComparisonFixture,
+  wideFigureFixture,
 } from '../fixtures/lesson-fixtures'
 import { parseAttemptResult } from '../schemas/attempt-schema'
 import type { ParsedLessonResponse } from '../schemas/lesson-schema'
@@ -295,4 +299,70 @@ describe('the reader, by keyboard and by ear', () => {
       await tabTo(learner, screen.getByRole('group', { name: region }))
     },
   )
+
+  it.each([
+    ['pictures by url', figureImageFixture],
+    ['inline svg', figureSvgFixture],
+    ['inline svg that tried to run code', hostileSvgFixture],
+    ['a figure wider than the column', wideFigureFixture],
+    ['a lesson with every block type in it', attemptFixture],
+  ])(
+    'names every figure in %s with the alt text its payload wrote, and nothing on the page is an unnamed image',
+    async (_name, fixture) => {
+      vi.mocked(getLesson).mockResolvedValue(fixture)
+
+      const { container } = renderReader()
+
+      await screen.findByRole('heading', { level: 1, name: fixture.lesson.title })
+
+      const figures = (fixture.lesson.blocks as { type?: string; alt?: string }[]).filter(
+        (block) => block.type === 'figure' && block.alt?.trim(),
+      )
+      expect(figures.length).toBeGreaterThan(0)
+
+      for (const { alt } of figures) {
+        // Each figure is found by the words its payload wrote: as the image's own
+        // name when it can be shown, and as the words in its place when it cannot.
+        const figure = screen.getByRole('group', { name: `Figure: ${alt}` })
+        const named = within(figure).queryByRole('img', { name: alt })
+
+        expect(named ?? within(figure).getByText(alt!)).toBeInTheDocument()
+      }
+
+      // Nothing slipped through unnamed: an `img` with an empty alt is skipped by a
+      // screen reader as decoration, and a drawing with no name is announced as
+      // "image" and nothing else.
+      for (const image of container.querySelectorAll('img')) {
+        expect(image.getAttribute('alt')?.trim(), image.outerHTML).toBeTruthy()
+      }
+      for (const image of screen.queryAllByRole('img')) {
+        expect(image).toHaveAccessibleName()
+      }
+    },
+  )
+
+  it('skips a figure that came with no alt text and says so, rather than showing a picture a screen reader cannot describe', async () => {
+    vi.mocked(getLesson).mockResolvedValue(figureImageFixture)
+
+    const { container } = renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Two ways to see the same step' })
+
+    // The contract says alt text is never empty. A figure that breaks that rule is
+    // a malformed block like any other: skipped, named, and the rest still reads.
+    expect(container.querySelector('img[src*="a-picture-nobody-described"]')).toBeNull()
+    expect(
+      screen.queryByText('The model drew this and forgot to say what it shows.'),
+    ).not.toBeInTheDocument()
+
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(within(notice).getByRole('listitem')).toHaveTextContent(
+      'A figure, in a shape this app cannot read',
+    )
+    expect(
+      screen.getByRole('img', {
+        name: 'A number line with 2, 4, and 6 marked, and an arrow from 2 to 4.',
+      }),
+    ).toBeInTheDocument()
+  })
 })
