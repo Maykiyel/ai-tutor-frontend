@@ -7,6 +7,8 @@ import {
   headingBlockSchema,
   paragraphBlockSchema,
   quizBlockSchema,
+  recallBlockSchema,
+  stepsBlockSchema,
   tableBlockSchema,
   type LessonBlock,
 } from '../schemas/lesson-schema'
@@ -16,6 +18,8 @@ import { FigureBlockView } from './components/figure-block'
 import { HeadingBlockView } from './components/heading-block'
 import { ParagraphBlockView } from './components/paragraph-block'
 import { QuizBlockView } from './components/quiz-block'
+import { RecallBlockView } from './components/recall-block'
+import { StepsBlockView } from './components/steps-block'
 import { TableBlockView } from './components/table-block'
 
 /**
@@ -50,7 +54,9 @@ export const blockRegistry = {
   code: { schema: codeBlockSchema, Component: CodeBlockView },
   figure: { schema: figureBlockSchema, Component: FigureBlockView },
   table: { schema: tableBlockSchema, Component: TableBlockView },
+  steps: { schema: stepsBlockSchema, Component: StepsBlockView },
   quiz: { schema: quizBlockSchema, Component: QuizBlockView },
+  recall: { schema: recallBlockSchema, Component: RecallBlockView },
 }
 
 export type RegisteredBlockType = keyof typeof blockRegistry
@@ -71,11 +77,12 @@ export type ParsedLessonBlock = {
 /**
  * True only for a type this build has a component for.
  *
- * The registry is a strict subset of the contract's nine types: steps and recall
- * arrive with their own tickets. A block of one of those types arriving early is
- * not a contract violation, so it takes the same path as a genuinely unknown type
- * — it renders nothing, is counted as skipped so the learner is told, and is
- * logged. Nothing breaks when a ticket lands late.
+ * The registry is now the contract's nine types in full, so a block this function
+ * rejects is a type the format does not define rather than one the app is behind
+ * on. The two take the same path anyway — it renders nothing, is counted as
+ * skipped so the learner is told, and is logged — so a tenth type invented by a
+ * model, or a lesson written by a backend on a newer format, still reads as a
+ * lesson with a gap in it rather than as a broken page.
  */
 export function isRegisteredBlockType(type: unknown): type is RegisteredBlockType {
   return typeof type === 'string' && Object.hasOwn(blockRegistry, type)

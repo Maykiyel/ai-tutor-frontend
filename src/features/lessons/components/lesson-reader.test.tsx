@@ -1,14 +1,24 @@
 import userEvent from '@testing-library/user-event'
+import type { UserEvent } from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router'
 
 import { paths } from '@/config/paths'
 import { renderWithRouter, screen, waitFor, within } from '@/test/test-utils'
 
-import { getLesson } from '../api/lesson-api'
+import { getLesson, submitAttempt } from '../api/lesson-api'
 import {
+  attemptResultAllWrongResponse,
+  attemptResultResponse,
+  attemptResultWithRecordResponse,
+  rc1ExpectedAnswer,
+  rc1Rubric,
+} from '../fixtures/attempt-result-fixtures'
+import {
+  attemptFixture,
   conceptFixture,
   figureImageFixture,
+  handsOnFixture,
   figureMermaidFixture,
   figureSvgFixture,
   hostileSvgFixture,
@@ -16,6 +26,7 @@ import {
   malformedBlockFixture,
   newerVersionFixture,
   quizFixture,
+  recallFixture,
   reviewFixture,
   raggedTableFixture,
   segmentsFixture,
@@ -23,6 +34,8 @@ import {
   unknownBlockFixture,
   wideFigureFixture,
 } from '../fixtures/lesson-fixtures'
+import { parseAttemptResult } from '../schemas/attempt-schema'
+import type { ParsedLessonResponse } from '../schemas/lesson-schema'
 import { LessonReader } from './lesson-reader'
 
 // The seam: the feature's own API module, stubbed with a fixture response.
@@ -56,12 +69,22 @@ type QuizQuestionPayload = {
 }
 
 function quizQuestions(): QuizQuestionPayload[] {
-  const block = quizFixture.lesson.blocks.find(
+  return quizQuestionsFrom(quizFixture, 'the quiz fixture')
+}
+
+/**
+ * The questions of whichever lesson the caller means, read from its fixture rather
+ * than off the screen, so a payload assertion compares what the reader sent against
+ * the lesson that was actually stored rather than restating the renderer's own
+ * choices.
+ */
+function quizQuestionsFrom(fixture: ParsedLessonResponse, name: string): QuizQuestionPayload[] {
+  const block = fixture.lesson.blocks.find(
     (candidate) => (candidate as { type?: string }).type === 'quiz',
   ) as { questions: QuizQuestionPayload[] } | undefined
 
   if (!block) {
-    throw new Error('the quiz fixture carries no quiz block')
+    throw new Error(`${name} carries no quiz block`)
   }
 
   return block.questions
@@ -91,6 +114,127 @@ function optionSignature(element: Element): string {
   return element.outerHTML.replace(/\sid="[^"]*"/g, '').replace(/>[^<>]+</g, '><')
 }
 
+/**
+ * One block of each of the nine types `docs/lesson-schema.json` fixes, in the
+ * order the contract lists them. Hand-written rather than read from a fixture,
+ * because the claim being tested is about the contract's set rather than about
+ * any one stored lesson, and every word in it is a word a learner can be shown.
+ */
+function oneBlockOfEveryType(): unknown[] {
+  return [
+    {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'A paragraph carrying one sentence.' }],
+    },
+    { type: 'heading', level: 2, text: 'A section heading' },
+    { type: 'callout', tone: 'note', content: [{ type: 'text', text: 'A note about the move.' }] },
+    { type: 'code', language: 'python', code: 'x = 2' },
+    {
+      type: 'figure',
+      kind: 'image',
+      source: 'https://example.org/moves.png',
+      alt: 'A bar chart of the two moves.',
+    },
+    {
+      type: 'table',
+      headers: ['Method', 'What it does'],
+      rows: [['Work backwards', 'Starts from the answer']],
+    },
+    {
+      type: 'steps',
+      title: 'Set up problem one, end to end',
+      items: [{ id: 's1', instruction: 'Name the unknown.', check: 'One letter is written down.' }],
+    },
+    {
+      type: 'quiz',
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'Which move comes first?',
+          options: [
+            { id: 'a', text: 'Add four to both sides', feedback: 'That is the second move.' },
+            { id: 'b', text: 'Subtract three from both sides', feedback: 'Exactly that.' },
+            { id: 'c', text: 'Divide both sides by two', feedback: 'You cannot divide yet.' },
+          ],
+          correctOptionId: 'b',
+          explanation: 'Undo addition before multiplication.',
+        },
+      ],
+    },
+    { type: 'recall', id: 'rc1', prompt: 'Why undo addition first?' },
+  ]
+}
+
+type StepsPayload = {
+  title: string
+  items: { id: string; instruction: string; check: string }[]
+}
+
+/**
+ * The checklist as the payload wrote it, read from the fixture rather than from
+ * the screen, so a completeness assertion compares the render against the lesson
+ * that was sent instead of restating whatever the renderer happened to produce.
+ */
+function handsOnSteps(): StepsPayload {
+  return stepsBlockOf(handsOnFixture, 'the hands-on fixture')
+}
+
+function stepsBlockOf(fixture: unknown, name: string): StepsPayload {
+  const block = (fixture as ParsedLessonResponse).lesson.blocks.find(
+    (candidate) => (candidate as { type?: string }).type === 'steps',
+  ) as StepsPayload | undefined
+
+  if (!block) {
+    throw new Error(`${name} carries no steps block`)
+  }
+
+  return block
+}
+
+type RecallPayload = { id: string; prompt: string }
+
+/** Every recall prompt in a lesson, in the order the lesson wrote them. */
+function recallsOf(fixture: ParsedLessonResponse): RecallPayload[] {
+  return fixture.lesson.blocks.filter(
+    (candidate) => (candidate as { type?: string }).type === 'recall',
+  ) as RecallPayload[]
+}
+
+function attemptQuestions(): QuizQuestionPayload[] {
+  return quizQuestionsFrom(attemptFixture, 'the attempt fixture')
+}
+
+function attemptSteps(): StepsPayload {
+  return stepsBlockOf(attemptFixture, 'the attempt fixture')
+}
+
+/**
+ * The attempt the reader sent, as the stubbed API function received it. Read off the
+ * stub rather than off the mutation cache: the payload is the contract, so what
+ * matters is what went out over the wire, not what the query layer is holding.
+ */
+function sentAttempts(): unknown[] {
+  return vi.mocked(submitAttempt).mock.calls.map(([, attempt]) => attempt)
+}
+
+function firstSentAttempt(): { answers: unknown[] } {
+  const attempt = sentAttempts()[0] as { answers: unknown[] } | undefined
+
+  if (!attempt) {
+    throw new Error('the learner never submitted an attempt')
+  }
+
+  return attempt
+}
+
+/** Answers of one variant, in the order they were sent. */
+function answersOfType(attempt: { answers: unknown[] }, type: string): Record<string, unknown>[] {
+  return attempt.answers.filter(
+    (answer): answer is Record<string, unknown> =>
+      typeof answer === 'object' && answer !== null && (answer as { type?: string }).type === type,
+  )
+}
+
 function renderReader(lessonId = LESSON_ID) {
   return renderWithRouter(
     <Routes>
@@ -100,9 +244,44 @@ function renderReader(lessonId = LESSON_ID) {
   )
 }
 
+/** The submit action at the foot of the lesson, named by its own words. */
+function sendButton(): HTMLElement {
+  return screen.getByRole('button', { name: 'Send my answers' })
+}
+
+/** The quiz question of the given id, as the learner finds it on the page. */
+function questionGroup(question: QuizQuestionPayload): HTMLElement {
+  return screen.getByRole('radiogroup', { name: question.prompt })
+}
+
+function recallBox(prompt: string): HTMLElement {
+  return screen.getByRole('textbox', { name: prompt })
+}
+
+/**
+ * Answers one question with the option the lesson says is right and another with one
+ * it says is wrong, so a submit assertion covers both cases without restating which
+ * option is which. The learner clicks options by their own text, the way a learner
+ * would.
+ */
+async function pickOption(
+  learner: UserEvent,
+  question: QuizQuestionPayload,
+  correct: boolean,
+): Promise<QuizQuestionPayload['options'][number]> {
+  const option = question.options.find((candidate) =>
+    correct ? candidate.id === question.correctOptionId : candidate.id !== question.correctOptionId,
+  )!
+
+  await learner.click(within(questionGroup(question)).getByRole('radio', { name: option.text }))
+
+  return option
+}
+
 describe('LessonReader', () => {
   beforeEach(() => {
     vi.mocked(getLesson).mockReset()
+    vi.mocked(submitAttempt).mockReset()
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -270,33 +449,41 @@ describe('LessonReader', () => {
     expect(warnings[0]).toContain('sandbox')
   })
 
-  it('reads a block type the contract defines but this build does not render yet', async () => {
-    // `recall` is one of the contract's nine types and has no component yet. It
-    // must behave exactly like a genuinely unknown type rather than breaking the
-    // lesson, so that a block arriving before its ticket is not a special case.
+  it('renders every block type the contract defines, so nothing in a lesson is ever skipped for want of a component', async () => {
+    // One block of each of the nine types the contract fixes, in one lesson. A
+    // type the app has no component for renders nothing and is counted as
+    // skipped, so this is the test that says the build is not behind the format:
+    // if a contract type ever loses its registry entry again, this lesson reads
+    // with a gap in it and the learner is told.
     vi.mocked(getLesson).mockResolvedValue({
       ...conceptFixture,
-      lesson: {
-        ...conceptFixture.lesson,
-        blocks: [
-          {
-            type: 'paragraph',
-            content: [{ type: 'text', text: 'The paragraph before the recall block.' }],
-          },
-          { type: 'recall', id: 'rc1', prompt: 'What undoes adding 4 to both sides?' },
-        ],
-      },
+      lesson: { ...conceptFixture.lesson, blocks: oneBlockOfEveryType() },
     })
 
     renderReader()
 
+    await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' })
+
+    for (const probe of [
+      'A paragraph carrying one sentence.',
+      'A section heading',
+      'A note about the move',
+      'x = 2',
+      'Method',
+      'Set up problem one, end to end',
+      'Which move comes first?',
+      'Why undo addition first?',
+    ]) {
+      expect(screen.getByText(probe, { exact: false })).toBeInTheDocument()
+    }
+
+    // The figure is named by its alt text rather than by words in the document,
+    // because that is how a learner who cannot see it is told what it shows.
+    expect(screen.getByRole('img', { name: 'A bar chart of the two moves.' })).toBeInTheDocument()
+
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Solving two-step equations' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('The paragraph before the recall block.')).toBeInTheDocument()
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toHaveTextContent('One part of this lesson could not be shown')
+      screen.queryByRole('status', { name: 'Part of this lesson is missing' }),
+    ).not.toBeInTheDocument()
   })
 
   it('skips a malformed block, keeps the rest, and tells the learner something was skipped', async () => {
@@ -344,6 +531,9 @@ describe('LessonReader', () => {
     ['a comparison table', tableComparisonFixture, 'Four ways to undo a step'],
     ['a table the model got wrong', raggedTableFixture, 'A table the model got slightly wrong'],
     ['a quiz with instant feedback', quizFixture, 'Checking the two moves'],
+    ['a recall prompt', recallFixture, 'Saying it in your own words'],
+    ['a hands-on checklist', handsOnFixture, 'Setting up the practice set'],
+    ['a lesson with all three practice blocks in it', attemptFixture, 'Answers and the checklist'],
   ])(
     'takes every colour from a theme token in %s, so the lesson reads in either scheme',
     async (_name, fixture, heading) => {
@@ -1063,6 +1253,727 @@ describe('LessonReader', () => {
         .getAllByRole('radio')
         .filter((o) => (o as HTMLInputElement).checked),
     ).toHaveLength(1)
+  })
+
+  it('shows every recall prompt as a labelled text area a learner can type into', async () => {
+    vi.mocked(getLesson).mockResolvedValue(recallFixture)
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' }),
+    ).toBeInTheDocument()
+
+    // Two prompts, two text areas, each named by its own words. A recall block
+    // whose prompt is not the accessible name of its control is a prompt a
+    // learner using a screen reader cannot tie to the box they are filling in.
+    const boxes = screen.getAllByRole('textbox')
+    expect(boxes).toHaveLength(2)
+    expect(boxes[0]).toHaveAccessibleName(
+      'In your own words, why do you undo addition before you undo multiplication?',
+    )
+    expect(boxes[1]).toHaveAccessibleName('In your own words, what makes an equation checkable?')
+
+    // A real association, not a placeholder: a `<label for>` pointing at the
+    // control, so clicking the words focuses it and the browser's own
+    // association is what a screen reader reads.
+    const prompt = screen.getByText(
+      'In your own words, why do you undo addition before you undo multiplication?',
+    )
+    expect(prompt.tagName).toBe('LABEL')
+    expect(prompt).toHaveAttribute('for', boxes[0].id)
+
+    // Both prompts start empty: there is no draft anybody else left behind.
+    expect(boxes[0]).toHaveValue('')
+    expect(boxes[1]).toHaveValue('')
+  })
+
+  it('puts no expected answer and no rubric anywhere in the lesson, before the learner submits', async () => {
+    // A response that leaked them, which is what the contract says must not
+    // happen. The reader is not the layer that removes them, so this asserts the
+    // page rather than the payload: whatever arrives, no expected answer and no
+    // rubric line reaches the document while the learner is reading.
+    const modelAnswer =
+      'Because 2 is multiplying the whole left side, so the 3 has to come off first.'
+    const rubric = ['Mentions multiplication by 2', 'Mentions order matters']
+
+    vi.mocked(getLesson).mockResolvedValue({
+      ...recallFixture,
+      lesson: {
+        ...recallFixture.lesson,
+        blocks: [
+          {
+            type: 'recall',
+            id: 'rc1',
+            prompt: 'Why undo addition first?',
+            modelAnswer,
+            rubric,
+          },
+        ],
+      },
+    })
+
+    const { container } = renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' }),
+    ).toBeInTheDocument()
+
+    // The prompt still renders and is still answerable.
+    expect(screen.getByRole('textbox')).toHaveAccessibleName('Why undo addition first?')
+
+    // The answer key is not in the document at all: not visible, not hidden, not in
+    // a `title`, not in an attribute, not in the markup. A rubric line a learner
+    // can read is the grading scheme for a question they have not been asked yet.
+    //
+    // Compared against every character of text the page shows and every character
+    // of its markup, rather than by querying for each string as an element's
+    // whole content. A renderer that spliced the answer into a sentence, or split
+    // it across two nodes, would slip past a query for the string on its own and
+    // past an assertion about one element.
+    const shown = document.body.textContent ?? ''
+    expect(shown).not.toContain(modelAnswer)
+    for (const line of rubric) {
+      expect(shown).not.toContain(line)
+    }
+    expect(container.innerHTML).not.toContain(modelAnswer)
+    expect(container.innerHTML).not.toContain('rubric')
+    expect(container.innerHTML).not.toContain('modelAnswer')
+  })
+
+  it('keeps a typed recall answer when the lesson reads further on and comes back', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(recallFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Saying it in your own words' })
+
+    const box = screen.getAllByRole('textbox')[0]
+    const answer = 'Because two is multiplying the whole left side, not just the x.'
+
+    // Typed one character at a time. Every keystroke changes the answer, which is
+    // a render of this block each time — so if the state the block keeps were
+    // cleared on anything other than the block going away, the second character
+    // would be typed into an empty box and the sentence would arrive one letter at
+    // a time in the history and nothing like this in the field.
+    await learner.type(box, answer)
+    expect(box).toHaveValue(answer)
+
+    // Read past it: the closing paragraph is below, which is where the learner
+    // goes for the next minute.
+    const last = screen.getByText('Read them back to yourself afterwards.', { exact: false })
+    window.scrollTo(0, last.getBoundingClientRect().bottom + window.scrollY)
+    expect(last).toBeVisible()
+
+    // Come back to the first prompt by tabbing from the top of the lesson rather
+    // than by reaching for the element, the way a learner who has scrolled would
+    // get there. Focusing it is a render of the block, and losing focus again is
+    // another, so this is the round trip the answer has to survive.
+    const second = screen.getAllByRole('textbox')[1]
+    await learner.click(second)
+    await learner.tab({ shift: true })
+    expect(box).toHaveFocus()
+    expect(box).toHaveValue(answer)
+
+    // And the second prompt is still its own empty box: two prompts in one lesson
+    // are two answers, not one answer written twice.
+    expect(second).toHaveValue('')
+  })
+
+  it('shows a hands-on lesson as a checklist: a title, an instruction per step, and how the learner knows it is done', async () => {
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' }),
+    ).toBeInTheDocument()
+
+    const { title, items } = handsOnSteps()
+
+    // A checklist, not explanation: one tickable control per step the lesson
+    // wrote, named by its own instruction, and nothing extra.
+    const boxes = screen.getAllByRole('checkbox')
+    expect(boxes).toHaveLength(items.length)
+    for (const item of items) {
+      expect(screen.getByRole('checkbox', { name: item.instruction })).toBeInTheDocument()
+    }
+
+    // Every step says how the learner will know it is done. A step with no check
+    // is a step the learner cannot tell they have finished.
+    for (const item of items) {
+      expect(screen.getByText(item.check, { exact: false })).toBeInTheDocument()
+    }
+
+    // The block's title, and the checklist it introduces is named by it, so a
+    // screen reader can say which list a step belongs to.
+    expect(screen.getByText(title).tagName).toMatch(/^H[1-6]$/)
+    const group = screen.getByRole('group', { name: title })
+    expect(within(group).getAllByRole('checkbox')).toHaveLength(items.length)
+
+    // It is a real checkbox per step rather than a styled div: keyboard operable,
+    // and the answer state is the control's own.
+    for (const box of boxes) {
+      expect(box.tagName).toBe('INPUT')
+      expect((box as HTMLInputElement).type).toBe('checkbox')
+      expect((box as HTMLInputElement).checked).toBe(false)
+    }
+  })
+
+  it('ticks and unticks a step from the keyboard, and reads done as a tick and as words', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' })
+
+    const [first] = handsOnSteps().items
+    const box = screen.getByRole('checkbox', { name: first.instruction })
+    const row = box.closest('label')!
+
+    // Tabbed to rather than focused directly, so this proves a step is reachable
+    // by keyboard at all and not merely operable once focused.
+    for (let presses = 0; presses < 25 && document.activeElement !== box; presses += 1) {
+      await learner.tab()
+    }
+    expect(box).toHaveFocus()
+
+    await learner.keyboard(' ')
+
+    // Space ticks it, and the state is the control's own checkedness — which is
+    // what a screen reader announces, so done is never carried by colour alone.
+    expect(box).toBeChecked()
+    // And in words too, so a learner who cannot perceive the tick at all still
+    // knows where they are in the checklist.
+    expect(row.textContent).toContain('Done')
+
+    // The other steps are untouched: one step's progress is not every step's.
+    const others = screen
+      .getAllByRole('checkbox')
+      .filter((candidate) => candidate !== box) as HTMLInputElement[]
+    expect(others.every((other) => !other.checked)).toBe(true)
+
+    await learner.keyboard(' ')
+
+    expect(box).not.toBeChecked()
+    expect(row.textContent).not.toContain('Done')
+  })
+
+  it('keeps ticked steps when the lesson reads further on and comes back', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(handsOnFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Setting up the practice set' })
+
+    const steps = handsOnSteps()
+    const [first, second] = steps.items
+
+    await learner.click(screen.getByRole('checkbox', { name: first.instruction }))
+    await learner.click(screen.getByRole('checkbox', { name: second.instruction }))
+
+    // Read past the checklist: the warning callout, the code, and the closing
+    // note are all below it.
+    expect(
+      screen.getByText('If your equation needs the unknown on both sides, stop.', { exact: false }),
+    ).toBeInTheDocument()
+
+    // Come back, and the ticks are still where the learner left them.
+    expect(screen.getByRole('checkbox', { name: first.instruction })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: second.instruction })).toBeChecked()
+    expect(
+      (screen.getByRole('checkbox', { name: steps.items[2].instruction }) as HTMLInputElement)
+        .checked,
+    ).toBe(false)
+  })
+
+  it('offers one submit action at the end of the lesson, disabled with a reason while there is nothing to send', async () => {
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const send = sendButton()
+
+    expect(send).toBeInTheDocument()
+    expect(send).toBeDisabled()
+
+    // The reason is on the page in words, not left to be inferred from a control that
+    // will not respond. A learner cannot act on a disabled button nobody explains.
+    expect(
+      screen.getByText(/Ticking a step is not an answer: steps are not graded/),
+    ).toBeInTheDocument()
+  })
+
+  it('does not let a ticked checklist on its own be sent, because steps are ungraded telemetry', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    // Every single step in the lesson ticked, and no answer anywhere.
+    for (const item of attemptSteps().items) {
+      await learner.click(screen.getByRole('checkbox', { name: item.instruction }))
+    }
+
+    expect(screen.getAllByRole('checkbox').every((box) => (box as HTMLInputElement).checked)).toBe(
+      true,
+    )
+    expect(sendButton()).toBeDisabled()
+    expect(sendButton()).toHaveAccessibleDescription(/steps are not graded/)
+
+    // And the learner cannot get it sent by clicking it anyway.
+    await learner.click(sendButton())
+
+    expect(vi.mocked(submitAttempt)).not.toHaveBeenCalled()
+  })
+
+  it('sends one attempt holding the quiz picks, the recall answers, and a done flag for every step including untouched ones', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [first, second] = attemptQuestions()
+    const [rc1] = recallsOf(attemptFixture)
+    const steps = attemptSteps()
+
+    await pickOption(learner, first, true)
+    await pickOption(learner, second, false)
+    // The third question is never answered at all.
+    await learner.type(recallBox(rc1.prompt), 'Because the 2 multiplies whatever is left.')
+    await learner.click(screen.getByRole('checkbox', { name: steps.items[0].instruction }))
+    // The second step is ticked and then unticked, which is not the same as never
+    // having touched it: an explicit `false` rather than an absent entry.
+
+    const secondBox = screen.getByRole('checkbox', { name: steps.items[1].instruction })
+    await learner.click(secondBox)
+    await learner.click(secondBox)
+
+    expect(sendButton()).toBeEnabled()
+    await learner.click(sendButton())
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    // What the stubbed API function received, which is the contract. Asserted at the
+    // screen seam rather than against the mutation cache, because the payload is
+    // what went over the wire and the cache is only a copy of it.
+    expect(vi.mocked(submitAttempt)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(submitAttempt).mock.calls[0][0]).toBe(LESSON_ID)
+
+    const attempt = firstSentAttempt()
+    const quiz = answersOfType(attempt, 'quiz')
+    expect(quiz.map((answer) => answer.questionId)).toEqual([first.id, second.id])
+    expect(quiz[0]).toMatchObject({ questionId: first.id, optionId: first.correctOptionId })
+    expect(quiz[1]).toMatchObject({ questionId: second.id })
+    expect(quiz[1].optionId).not.toBe(second.correctOptionId)
+
+    const recall = answersOfType(attempt, 'recall')
+    expect(recall).toEqual([
+      { type: 'recall', recallId: rc1.id, text: 'Because the 2 multiplies whatever is left.' },
+    ])
+
+    // Every step the lesson has, in the lesson's order, each with an explicit flag.
+    // s3 was never touched and s2 was unticked, and both are sent as `false`: the
+    // contract's telemetry distinguishes a step left undone from a step that was
+    // never opened, and only the lesson knows which steps exist.
+    expect(answersOfType(attempt, 'steps')).toEqual([
+      { type: 'steps', stepId: steps.items[0].id, done: true },
+      { type: 'steps', stepId: steps.items[1].id, done: false },
+      { type: 'steps', stepId: steps.items[2].id, done: false },
+    ])
+
+    // Nothing was sent that is not one of the three variants, so a blank recall can
+    // never have been shaped like a quiz answer.
+    expect(attempt.answers.map((answer) => (answer as { type: string }).type).sort()).toEqual([
+      'quiz',
+      'quiz',
+      'recall',
+      'steps',
+      'steps',
+      'steps',
+    ])
+  })
+
+  it('omits a question the learner never answered, rather than sending it as a blank', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [, , skipped] = attemptQuestions()
+    const [, untouchedRecall] = recallsOf(attemptFixture)
+
+    // One answer, and it is the first question. Two questions and one prompt are left
+    // completely alone.
+    await pickOption(learner, attemptQuestions()[0], true)
+
+    await learner.click(sendButton())
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    const attempt = firstSentAttempt()
+
+    // Omission, not a blank. A skipped answer means skipped in the contract, and it
+    // is excluded from grading; an empty `optionId` would instead be a malformed
+    // answer for a question the learner never saw an answer key for.
+    expect(answersOfType(attempt, 'quiz').map((answer) => answer.questionId)).not.toContain(
+      skipped.id,
+    )
+    expect(answersOfType(attempt, 'recall')).toEqual([])
+    expect(untouchedRecall).toBeDefined()
+
+    // The untouched question is still on the page, unanswered, rather than gone. It
+    // is skipped in the attempt and it is still there to be seen.
+    expect(within(questionGroup(skipped)).getAllByRole('radio')).toHaveLength(
+      skipped.options.length,
+    )
+    expect(recallBox(untouchedRecall.prompt)).toHaveValue('')
+  })
+
+  it('sends a recall the learner cleared as an empty recall answer, which is not the same as skipped', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [rc1, rc2] = recallsOf(attemptFixture)
+
+    // Typed and then deleted. The learner reached the prompt and then decided they had
+    // nothing to say, which is a different fact from never opening it.
+    const box = recallBox(rc1.prompt)
+    await learner.type(box, 'Something.')
+    await learner.clear(box)
+    expect(box).toHaveValue('')
+
+    await learner.click(sendButton())
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    const recall = answersOfType(firstSentAttempt(), 'recall')
+
+    // Present, with an empty string, and shaped as a recall: the union keeps a blank
+    // answer from ever being mistaken for a malformed quiz answer. The untouched
+    // prompt is still absent.
+    expect(recall).toEqual([{ type: 'recall', recallId: rc1.id, text: '' }])
+    expect(recall.map((answer) => answer.recallId)).not.toContain(rc2.id)
+  })
+
+  it('shows feedback per answer once the attempt comes back, marked in words and a glyph as well as colour', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await pickOption(learner, attemptQuestions()[1], false)
+    await learner.type(recallBox(recallsOf(attemptFixture)[0].prompt), 'Because order is fixed.')
+
+    await learner.click(sendButton())
+
+    const result = await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    const region = result.closest('section')!
+
+    // Three graded answers came back, so three notes. Each names the question it is
+    // about, which is how a learner finds the one they care about.
+    expect(within(region).getAllByRole('note')).toHaveLength(3)
+    expect(
+      within(region).getByText(attemptQuestions()[0].prompt, { exact: false }),
+    ).toBeInTheDocument()
+
+    // The learner's own words are in the result too: a result the learner cannot match
+    // against what they wrote is a result about some other attempt.
+    expect(region).toHaveTextContent('Because order is fixed.')
+
+    // Two of the three came back right and one did not, and each is marked by its own
+    // word and its own glyph. The glyph is decoration: the word is what a screen
+    // reader reads, and neither the word nor the glyph is signalled by colour alone.
+    const right = within(region).getAllByRole('note', { name: 'Correct' })
+    const wrong = within(region).getAllByRole('note', { name: 'Not quite' })
+
+    expect(right).toHaveLength(2)
+    expect(wrong).toHaveLength(1)
+    expect(right.every((note) => note.textContent?.includes('✓'))).toBe(true)
+    expect(wrong[0].textContent).toContain('✗')
+  })
+
+  it('works the summary out from what came back, and counts the checklist nowhere', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const steps = attemptSteps()
+    // Every step ticked, so a summary that counted telemetry would report five graded
+    // items rather than the three that came back.
+    for (const item of steps.items) {
+      await learner.click(screen.getByRole('checkbox', { name: item.instruction }))
+    }
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await pickOption(learner, attemptQuestions()[1], false)
+    await learner.type(recallBox(recallsOf(attemptFixture)[0].prompt), 'Because order is fixed.')
+
+    await learner.click(sendButton())
+
+    const result = await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    const region = result.closest('section')!
+
+    // Two of the three returned entries were right. The arithmetic is the frontend's
+    // because the contract carries no score, and it is arithmetic over `perAnswer`
+    // only.
+    expect(region).toHaveTextContent('2 of 3 answers right.')
+
+    // Two graded items were skipped — the third question and the second prompt — and
+    // the summary says so rather than pretending they were wrong or pretending they
+    // do not exist.
+    expect(region).toHaveTextContent('2 answers were skipped, and a skipped answer is not graded.')
+
+    // Announced as it arrives, in a live region, and only the sentence: the breakdown
+    // is content the learner navigates to rather than a wall of speech on submit.
+    const announced = within(region).getByRole('status')
+    expect(announced).toHaveTextContent('2 of 3 answers right.')
+
+    // The checklist is named as not being part of the count, so a learner who ticked
+    // three boxes and is told about two answers does not conclude their ticks vanished.
+    expect(region).toHaveTextContent(
+      'Your checklist is not in this count. Steps are not graded, so they contribute nothing to it.',
+    )
+  })
+
+  it('takes the verdict from what came back rather than recomputing it from the learner answers', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultAllWrongResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    // The learner picks the option the lesson calls correct. The stubbed result marks
+    // it wrong anyway, and the reader has no business overruling the backend: whether
+    // an answer is right is the backend's judgement, not a thing the frontend rederives
+    // from a `correctOptionId` it happens to have.
+    await pickOption(learner, attemptQuestions()[0], true)
+
+    await learner.click(sendButton())
+
+    const result = await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    const region = result.closest('section')!
+
+    expect(region).toHaveTextContent('0 of 1 answer right.')
+    expect(within(region).getByRole('note', { name: 'Not quite' })).toBeInTheDocument()
+  })
+
+  it('shows a recall expected answer and its rubric only once the attempt has come back', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    const { container } = renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    await learner.type(recallBox(recallsOf(attemptFixture)[0].prompt), 'Because order is fixed.')
+
+    // Before submitting, neither the expected answer nor either rubric line is
+    // anywhere in the document. Not hidden, not in an attribute, not in the markup: a
+    // rubric a learner can read before answering is a grading scheme for a question
+    // they have not been asked.
+    const beforeSubmit = document.body.textContent ?? ''
+    expect(beforeSubmit).not.toContain(rc1ExpectedAnswer)
+    for (const line of rc1Rubric) {
+      expect(beforeSubmit).not.toContain(line)
+    }
+    expect(container.innerHTML).not.toContain('modelAnswer')
+
+    await learner.click(sendButton())
+
+    const result = await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    const region = result.closest('section')!
+
+    // After submitting they are here, labelled as what they are, so the learner can
+    // compare their own sentence against them.
+    expect(region).toHaveTextContent(rc1ExpectedAnswer)
+    for (const line of rc1Rubric) {
+      expect(region).toHaveTextContent(line)
+    }
+    expect(region).toHaveTextContent('What a good answer says:')
+
+    // The prompt they wrote this against is named, so a result about rc1 is findable
+    // in a lesson with more than one prompt in it.
+    expect(region).toHaveTextContent(recallsOf(attemptFixture)[0].prompt)
+  })
+
+  it('says quietly that progress was recorded, and says nothing at all when it was not', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    const withoutRecord = renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.click(sendButton())
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    // No candidate came back, so there is no note — and no "not this time" in its
+    // place either. Telling a learner they were not understood is a judgement the
+    // reader does not make.
+    expect(screen.queryByRole('note', { name: 'Kept as a record' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/recorded/i)).not.toBeInTheDocument()
+
+    // Leaving the page ends the visit, so the second render starts a fresh one rather
+    // than showing the first attempt's result — the same lifecycle the answer maps
+    // have, which is why unmounting is enough here.
+    withoutRecord.unmount()
+
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultWithRecordResponse))
+
+    const withRecord = renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.click(sendButton())
+
+    const note = await screen.findByRole('note', { name: 'Kept as a record' })
+
+    // The backend's own words, all three: what it recorded, and what in the answers
+    // supports it. Nothing here congratulates the learner or claims to understand them,
+    // because whether this attempt is evidence of understanding is not the reader's
+    // call.
+    expect(note).toHaveTextContent('Explains why the order of the two moves is fixed')
+    expect(note).toHaveTextContent('Ada said it in her own words, unprompted')
+    expect(note).toHaveTextContent(
+      'Because: rc1 asked for the reason the order is fixed, and the answer names the whole left side the 3 is added to.',
+    )
+    expect(note.textContent).not.toMatch(/well done|great work|congratulat/i)
+
+    withRecord.unmount()
+  })
+
+  it('reports a failed attempt and keeps every answer, so a retry costs no retyping', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt)
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [rc1, rc2] = recallsOf(attemptFixture)
+    const steps = attemptSteps()
+    const typed = 'Because the 2 multiplies whatever is left.'
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.type(recallBox(rc1.prompt), typed)
+    await learner.click(screen.getByRole('checkbox', { name: steps.items[0].instruction }))
+
+    await learner.click(sendButton())
+
+    expect(await screen.findByText('Your answers were not sent')).toBeInTheDocument()
+    expect(screen.getByText(/Nothing was lost/)).toBeInTheDocument()
+
+    // Every answer is still exactly where the learner left it: the quiz pick, the
+    // typed sentence, and the tick. Nothing was cleared on the way out, so a retry is
+    // one press rather than a retyping.
+    expect(recallBox(rc1.prompt)).toHaveValue(typed)
+    expect(recallBox(rc2.prompt)).toHaveValue('')
+    expect(
+      within(questionGroup(attemptQuestions()[0]))
+        .getAllByRole('radio')
+        .filter((radio) => (radio as HTMLInputElement).checked),
+    ).toHaveLength(1)
+    expect(screen.getByRole('checkbox', { name: steps.items[0].instruction })).toBeChecked()
+
+    // And the retry sends the same attempt, because the answers were never lost.
+    await learner.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    expect(vi.mocked(submitAttempt)).toHaveBeenCalledTimes(2)
+    expect(sentAttempts()[1]).toEqual(sentAttempts()[0])
+    expect(recallBox(rc1.prompt)).toHaveValue(typed)
+  })
+
+  it('keeps a submitted attempt on screen with the answers locked, and says that they are locked', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [rc1] = recallsOf(attemptFixture)
+    const steps = attemptSteps()
+    const typed = 'Because the 2 multiplies whatever is left.'
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.type(recallBox(rc1.prompt), typed)
+    await learner.click(screen.getByRole('checkbox', { name: steps.items[0].instruction }))
+
+    await learner.click(sendButton())
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+
+    // The attempt stays: one attempt, one result, and the learner reads it here rather
+    // than being sent somewhere else to find out how they did.
+    expect(screen.getByRole('heading', { level: 2, name: 'How your answers went' })).toBeVisible()
+    // Including the recall feedback, so the learner is reading the whole result rather
+    // than being handed a bare summary and a set of empty boxes.
+    expect(screen.getByText(new RegExp(rc1ExpectedAnswer.split('.')[0]))).toBeInTheDocument()
+
+    // There is no second submit action, because there is no second attempt to make.
+    expect(screen.queryByRole('button', { name: 'Send my answers' })).not.toBeInTheDocument()
+
+    // Every control that took an answer refuses a new one, and each says so in words.
+    // Locking silently would look like a broken app rather than a finished attempt.
+    const radios = within(questionGroup(attemptQuestions()[0])).getAllByRole('radio')
+    expect(radios.every((radio) => (radio as HTMLInputElement).disabled)).toBe(true)
+    expect(recallBox(rc1.prompt)).toHaveAttribute('readonly')
+    expect(screen.getAllByRole('checkbox').every((box) => (box as HTMLInputElement).disabled)).toBe(
+      true,
+    )
+
+    const lockNotes = screen.getAllByText(/Your answers are locked, and they stay on screen/)
+    expect(lockNotes.length).toBeGreaterThanOrEqual(3)
+
+    // The answers themselves are still readable, which is the point of locking rather
+    // than clearing: the learner can check what they submitted against the feedback.
+    expect(recallBox(rc1.prompt)).toHaveValue(typed)
+    expect(
+      within(questionGroup(attemptQuestions()[0]))
+        .getAllByRole('radio')
+        .filter((radio) => (radio as HTMLInputElement).checked),
+    ).toHaveLength(1)
+    expect(screen.getByRole('checkbox', { name: steps.items[0].instruction })).toBeChecked()
   })
 
   it('lets the learner get back to the lesson list', async () => {

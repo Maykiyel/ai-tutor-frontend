@@ -11,6 +11,23 @@ const kindLabels: Record<LessonKind, string> = {
 }
 
 /**
+ * What the kind means for the learner's next fifteen minutes, in words.
+ *
+ * The label alone does not answer the question the learner actually has, which is
+ * whether they are about to be taught something or asked to practise. "Review" in
+ * particular is a word about the lesson rather than about the work, so the kind is
+ * glossed in the learner's terms as well as labelled.
+ *
+ * Words, not a colour: whether this is reading or practising has to survive a
+ * learner who perceives none of the palette.
+ */
+const kindPurpose: Record<LessonKind, string> = {
+  concept: 'New material. Read it, then check yourself at the end.',
+  'hands-on': 'Practice. Work down the checklist with your own work open.',
+  review: 'Practice from memory. Nothing new is introduced here.',
+}
+
+/**
  * What the learner is opening: which lesson, what kind, the single skill it
  * teaches, how it ties to their mission, and how long it takes. The mission link
  * is the payload's own `missionLink` — the lesson saying, in the learner's terms,
@@ -29,6 +46,10 @@ export function LessonHeaderView({ lesson }: { lesson: LessonHeader }) {
       </Group>
 
       <Title order={1}>{lesson.title}</Title>
+
+      <Text size="sm" c="dimmed">
+        {kindPurpose[lesson.kind]}
+      </Text>
 
       <Stack gap="xs" mt="md">
         <Box>

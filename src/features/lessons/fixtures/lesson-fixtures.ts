@@ -14,11 +14,13 @@ import conceptFigureWide from './concept-figure-wide.json'
 import conceptMalformedBlock from './concept-malformed-block.json'
 import conceptNewerSchemaVersion from './concept-newer-schema-version.json'
 import conceptQuiz from './concept-quiz.json'
+import conceptRecall from './concept-recall.json'
 import conceptSolvingTwoStepEquations from './concept-solving-two-step-equations.json'
 import conceptTableComparison from './concept-table-comparison.json'
 import conceptTableRagged from './concept-table-ragged.json'
 import conceptTermsAndCitations from './concept-terms-and-citations.json'
 import conceptUnknownBlock from './concept-unknown-block.json'
+import handsOnAnswersAndTheChecklist from './hands-on-answers-and-the-checklist.json'
 import handsOnSettingUpThePracticeSet from './hands-on-setting-up-the-practice-set.json'
 import reviewReviewingTwoStepEquations from './review-reviewing-two-step-equations.json'
 
@@ -89,6 +91,31 @@ export const raggedTableFixture = parseLessonResponse(conceptTableRagged)
  * rule and the one the reader must not break by truncating or padding.
  */
 export const quizFixture = parseLessonResponse(conceptQuiz)
+
+/**
+ * Two recall prompts in one lesson, with prose above, between, and below them, so
+ * a test can read past a prompt and come back to it. Neither the model answer nor
+ * the rubric appears anywhere in the file: the lesson response is not allowed to
+ * carry them, so a fixture that did would be a fixture of a contract breach.
+ */
+export const recallFixture = parseLessonResponse(conceptRecall)
+
+/**
+ * All three practice block types in one lesson, which is the only shape that can
+ * exercise the attempt: a quiz of three questions, a checklist of three steps, and
+ * two recall prompts.
+ *
+ * Hands-on rather than concept on purpose. The recipe matrix in
+ * `docs/lesson-format.md` forbids steps in a concept lesson, so a concept lesson
+ * carrying all three would be a lesson the backend should have rejected — and a
+ * fixture of a contract breach is worth avoiding unless the breach is the thing
+ * being tested. A hands-on lesson is the one kind that legitimately has all three.
+ *
+ * Step ids, question ids, and prompt ids are the ones `attempt-result-fixtures.ts`
+ * answers for, so the two fixtures are a matched pair: what was sent and what came
+ * back for the same visit.
+ */
+export const attemptFixture = parseLessonResponse(handsOnAnswersAndTheChecklist)
 
 /**
  * Keyed by lesson slug so a test that walks the reader by slug reads like a

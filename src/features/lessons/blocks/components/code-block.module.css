@@ -1,0 +1,38 @@
+/*
+ * The code block's surface and its language label.
+ *
+ * Mantine's own `Code` surface is `gray-0` in the light scheme, which on this app's
+ * near-white page is a 1.04:1 difference — effectively invisible. The code was
+ * perfectly legible and still did not read as a block, which is its own kind of
+ * unusable: a learner cannot tell where the code stops and the prose resumes.
+ *
+ * So the surface is stated per scheme, with a hairline edge so the boundary does not
+ * depend on the background alone — in the dark scheme a fill one step from the page
+ * is barely a fill at all, and the edge is what actually separates the two. Both are
+ * Mantine tokens; nothing here is a literal colour, so the block follows the theme if
+ * the ramps ever change.
+ *
+ * The label is here for the same reason. `c="dimmed"` resolves to `dark-2` on the
+ * dark page, which measures 4.04:1 — just short of AA — and a language label is the
+ * one line in the block a learner scans for, so it is held to the same bar as
+ * everything else. It is styled here rather than through a `c` prop because `dimmed`
+ * is a single token for both schemes, and only the dark scheme's value is wrong.
+ */
+
+.surface {
+  background-color: var(--mantine-color-gray-2);
+  border: 1px solid var(--mantine-color-gray-3);
+}
+
+.label {
+  color: var(--mantine-color-gray-7);
+}
+
+:global([data-mantine-color-scheme='dark']) .surface {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+:global([data-mantine-color-scheme='dark']) .label {
+  color: var(--mantine-color-dark-1);
+}

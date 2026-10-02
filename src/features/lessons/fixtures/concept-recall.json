@@ -1,0 +1,62 @@
+{
+  "lesson": {
+    "schemaVersion": 1,
+    "number": 6,
+    "kind": "concept",
+    "slug": "saying-it-in-your-own-words",
+    "title": "Saying it in your own words",
+    "skill": "Explain a two-step move in your own words, without looking at the lesson.",
+    "missionLink": "You can solve the problems and still freeze if someone asks you why the order matters. Two prompts to practise saying it out loud.",
+    "minutes": 7,
+    "primarySource": {
+      "resourceId": 12,
+      "why": "It states the reason for the order in one sentence, which is what the prompts ask you to reproduce."
+    },
+    "blocks": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Write these from memory. Nobody sees what you type until you have finished the lesson, so there is nothing to look up and nothing to lose by getting it wrong."
+          }
+        ]
+      },
+      {
+        "type": "recall",
+        "id": "rc1",
+        "prompt": "In your own words, why do you undo addition before you undo multiplication?"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "One more, because the second one is the one that catches people out."
+          }
+        ]
+      },
+      {
+        "type": "recall",
+        "id": "rc2",
+        "prompt": "In your own words, what makes an equation checkable?"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Read them back to yourself afterwards. The sentence you can say without hesitating is the one you actually have."
+          }
+        ]
+      }
+    ]
+  },
+  "terms": {},
+  "resources": {
+    "12": {
+      "title": "Two-step equations, worked slowly",
+      "url": "https://example.org/two-step-equations"
+    }
+  }
+}

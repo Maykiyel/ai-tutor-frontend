@@ -41,7 +41,22 @@ export default function App() {
 
         <AppSidebar sections={sections}>{workspaceId ? <WorkspaceSwitcher /> : null}</AppSidebar>
 
-        <AppShell.Main bg={'gray.3'} c={'gray.8'}>
+        {/*
+            No `bg` and no `c` here, on purpose.
+
+            Both used to be pinned to single shades of the ramp — `bg="gray.3"` and
+            `c="gray.8"` — which are light-scheme values with no dark counterpart. In
+            the dark scheme that painted a near-white content area and, worse, set
+            every piece of text inside it to a light-mode dark grey. Anything in here
+            that carried its own surface then put light-scheme text on a dark
+            background: a code block measured 1.19:1, which is unreadable.
+
+            Leaving both unset hands them to Mantine, whose defaults are the semantic
+            `--mantine-color-body` and `--mantine-color-text` and therefore follow the
+            scheme. `theme.test.tsx` and `app.test.tsx` both exist to keep this from
+            coming back.
+        */}
+        <AppShell.Main>
           <PageContainer>
             <Outlet />
           </PageContainer>

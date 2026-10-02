@@ -1,8 +1,10 @@
 import { useEffect, useId } from 'react'
 import { Alert, Box, Paper, Radio, Stack, Text } from '@mantine/core'
 
-import { useChooseQuizOption, useForgetQuizAnswers, useQuizAnswer } from '../../quiz/quiz-answers'
+import { LockedAnswersNote } from '../../attempt/locked-answers-note'
+import { useSubmittedAttempt } from '../../attempt/attempt-store'
 import type { QuizBlock } from '../../schemas/lesson-schema'
+import { useChooseQuizOption, useForgetQuizAnswers, useQuizAnswer } from '../../quiz/quiz-answers'
 import { useLesson } from '../lesson-context'
 import styles from './quiz-options.module.css'
 
@@ -56,8 +58,14 @@ function QuizQuestion({ question, lessonSlug }: QuizQuestionProps) {
   // cannot walk out of it into the next question's answers, even where a lesson
   // has two quiz blocks and their question ids overlap.
   const groupName = useId()
-  const picked = useQuizAnswer(lessonSlug, question.id)
+  const chosen = useQuizAnswer(lessonSlug, question.id)
   const choose = useChooseQuizOption()
+  // A sent attempt empties the live answer map, so the choice the learner made is
+  // read back off the request that carried it. Without this the radio would empty
+  // itself at the moment of submission and the learner would lose sight of what
+  // they had answered while reading the result about it.
+  const sent = useSubmittedAttempt(lessonSlug)
+  const picked = sent ? sent.quiz[question.id] : chosen
   const pickedOption = question.options.find((option) => option.id === picked)
 
   return (
@@ -83,6 +91,11 @@ function QuizQuestion({ question, lessonSlug }: QuizQuestionProps) {
               name={groupName}
               checked={picked === option.id}
               onChange={() => choose(lessonSlug, question.id, option.id)}
+              // Disabled rather than hidden: an answer the learner made and cannot
+              // now change has to stay visible, and the reason it cannot change is
+              // said in words below rather than left to be guessed from a control
+              // that stopped responding.
+              disabled={Boolean(sent)}
             />
             <Text component="span">{option.text}</Text>
           </Paper>
@@ -90,6 +103,8 @@ function QuizQuestion({ question, lessonSlug }: QuizQuestionProps) {
       </Stack>
 
       <QuizFeedback promptId={promptId} question={question} option={pickedOption} />
+
+      <LockedAnswersNote lessonSlug={lessonSlug} />
     </Box>
   )
 }
