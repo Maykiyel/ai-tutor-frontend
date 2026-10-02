@@ -170,7 +170,9 @@
         },
         "alt": {
           "type": "string",
-          "description": "Real alt text. Never empty, never a placeholder."
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Real alt text. Never empty, never a placeholder. Must contain at least one non-whitespace character: a blank alt makes the figure invisible to a screen reader, so a figure without one is a malformed block."
         },
         "caption": { "type": "string" }
       }
