@@ -23,6 +23,52 @@
         ]
       },
       {
+        "type": "heading",
+        "level": 2,
+        "text": "Before you start"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Every move below is an " },
+          { "type": "term", "termId": 4, "text": "inverse operation" },
+          { "type": "text", "text": ", as " },
+          { "type": "cite", "resourceId": 12, "text": "the worked examples show" },
+          { "type": "text", "text": ". If the order still feels arbitrary, go back to " },
+          { "type": "link", "to": "lesson", "targetId": 3, "text": "solving two-step equations" },
+          { "type": "text", "text": " first." }
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "note",
+        "content": [
+          { "type": "text", "text": "Nothing here is timed. Take " },
+          { "type": "cite", "resourceId": 13, "text": "one move at a time" },
+          { "type": "text", "text": " and check both sides after each." }
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "def undo(total: int, added: int, times: int) -> float:\n    return (total - added) / times"
+      },
+      {
+        "type": "table",
+        "headers": ["Move", "Undoes"],
+        "rows": [
+          ["Subtract 3 from both sides", "Adding 3"],
+          ["Divide both sides by 2", "Multiplying by 2"]
+        ]
+      },
+      {
+        "type": "figure",
+        "kind": "image",
+        "source": "https://example.org/two-moves.png",
+        "alt": "A balance with 2x + 3 on one side and 11 on the other, and an arrow for each move.",
+        "caption": "One move, then the other, and both sides change each time."
+      },
+      {
         "type": "steps",
         "title": "One equation, end to end",
         "items": [
@@ -138,11 +184,21 @@
       }
     ]
   },
-  "terms": {},
+  "terms": {
+    "4": {
+      "term": "inverse operation",
+      "definition": "The operation that undoes another one: subtraction undoes addition, and division undoes multiplication.",
+      "avoid": ["opposite operation", "reverse operation"]
+    }
+  },
   "resources": {
     "12": {
       "title": "Two-step equations, worked slowly",
       "url": "https://example.org/two-step-equations"
+    },
+    "13": {
+      "title": "Inverse operations, one at a time",
+      "url": "https://example.org/inverse-operations"
     }
   }
 }

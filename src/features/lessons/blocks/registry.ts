@@ -42,21 +42,30 @@ export type BlockComponent<TBlock extends LessonBlock> = ComponentType<{ block: 
  * in step, which is what keeps the reader's tolerance for unknown types working as
  * the format grows. The full checklist is in `README.md` beside this file.
  *
+ * `name` is what the learner is told when a block of this type arrives broken
+ * and is skipped: "A quiz, in a shape this app cannot read" rather than a count
+ * with nothing in it. It lives in the entry rather than in a second map so the
+ * entry stays the only thing a new type needs.
+ *
  * The map is typed by inference, not annotated: `satisfies` against the union of
  * block types would have to claim each entry accepts `unknown`, which no typed
  * component does. Inferred types keep each entry tied to its own schema, which is
  * what makes `ParsedLessonBlock` distribute correctly.
  */
 export const blockRegistry = {
-  paragraph: { schema: paragraphBlockSchema, Component: ParagraphBlockView },
-  heading: { schema: headingBlockSchema, Component: HeadingBlockView },
-  callout: { schema: calloutBlockSchema, Component: CalloutBlockView },
-  code: { schema: codeBlockSchema, Component: CodeBlockView },
-  figure: { schema: figureBlockSchema, Component: FigureBlockView },
-  table: { schema: tableBlockSchema, Component: TableBlockView },
-  steps: { schema: stepsBlockSchema, Component: StepsBlockView },
-  quiz: { schema: quizBlockSchema, Component: QuizBlockView },
-  recall: { schema: recallBlockSchema, Component: RecallBlockView },
+  paragraph: { schema: paragraphBlockSchema, Component: ParagraphBlockView, name: 'A paragraph' },
+  heading: { schema: headingBlockSchema, Component: HeadingBlockView, name: 'A heading' },
+  callout: { schema: calloutBlockSchema, Component: CalloutBlockView, name: 'A highlighted note' },
+  code: { schema: codeBlockSchema, Component: CodeBlockView, name: 'A code sample' },
+  figure: { schema: figureBlockSchema, Component: FigureBlockView, name: 'A figure' },
+  table: { schema: tableBlockSchema, Component: TableBlockView, name: 'A table' },
+  steps: { schema: stepsBlockSchema, Component: StepsBlockView, name: 'A checklist' },
+  quiz: { schema: quizBlockSchema, Component: QuizBlockView, name: 'A quiz' },
+  recall: {
+    schema: recallBlockSchema,
+    Component: RecallBlockView,
+    name: 'A question to answer from memory',
+  },
 }
 
 export type RegisteredBlockType = keyof typeof blockRegistry

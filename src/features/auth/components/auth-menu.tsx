@@ -1,7 +1,7 @@
-import { Avatar, Group, Menu, Text } from '@mantine/core'
+import { Avatar, Group, Menu, Text, UnstyledButton } from '@mantine/core'
 
 import { useAuth } from '../hooks/use-auth'
-import { LogoutButton } from './logout-button'
+import { LogoutMenuItem } from './logout-menu-item'
 
 function getInitials(username: string): string {
   return username.slice(0, 2).toUpperCase()
@@ -19,15 +19,26 @@ export function AuthMenu() {
 
   return (
     <Menu shadow="md" width={220} position="bottom-end">
+      {/*
+          A real button, so the menu is a tab stop and Enter or Space opens it. It
+          used to be a plain group, which a pointer could open and a keyboard could
+          not reach at all. The name says what the control is as well as who is
+          signed in, because the avatar's initials alone name nothing.
+      */}
       <Menu.Target>
-        <Group gap="xs" style={{ cursor: 'pointer' }} wrap="nowrap">
-          <Avatar color="lime" radius="xl" size="sm">
-            {getInitials(user.username)}
-          </Avatar>
-          <Text size="sm" fw={500} visibleFrom="xs">
-            {user.username}
-          </Text>
-        </Group>
+        <UnstyledButton
+          aria-label={`Account menu, signed in as ${user.username}`}
+          className="mantine-focus-auto"
+        >
+          <Group gap="xs" wrap="nowrap">
+            <Avatar color="lime" radius="xl" size="sm" aria-hidden>
+              {getInitials(user.username)}
+            </Avatar>
+            <Text size="sm" fw={500} visibleFrom="xs">
+              {user.username}
+            </Text>
+          </Group>
+        </UnstyledButton>
       </Menu.Target>
 
       <Menu.Dropdown>
@@ -36,10 +47,7 @@ export function AuthMenu() {
 
         <Menu.Divider />
 
-        {/* LogoutButton owns its own mutation and pending state. */}
-        <Menu.Item closeMenuOnClick={false} px={4} py={4}>
-          <LogoutButton />
-        </Menu.Item>
+        <LogoutMenuItem />
       </Menu.Dropdown>
     </Menu>
   )

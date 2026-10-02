@@ -399,8 +399,9 @@ Prior art in this repository
   `resources` map.
 - Open decisions that need an owner. The model provider, the spaced repetition
   algorithm, how long learner answers are kept, whether communities are curated or
-  found per learner, the retry limit when regenerating a rejected lesson, which SVG
-  sanitizer the backend uses, and when attempts are submitted.
+  found per learner, the retry limit when regenerating a rejected lesson, and which SVG
+  sanitizer the backend uses. When attempts are submitted was on this list too. It is
+  settled as once, at the end of the lesson; see the frontend onboarding document.
 - The lesson recipe matrix is a first guess. Tune it once real generated lessons exist.
 - The backend is built by a separate developer, who reads this repository. Contract
   changes travel as commits to `docs/lesson-schema.json`.

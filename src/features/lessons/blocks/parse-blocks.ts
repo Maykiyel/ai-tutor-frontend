@@ -1,7 +1,27 @@
-import { blockRegistry, isRegisteredBlockType, type ParsedLessonBlock } from './registry'
+import {
+  blockRegistry,
+  isRegisteredBlockType,
+  type ParsedLessonBlock,
+  type RegisteredBlockType,
+} from './registry'
 
 export type SkippedBlock =
-  { kind: 'unknown-type'; type: unknown } | { kind: 'malformed'; type: unknown }
+  { kind: 'unknown-type'; type: unknown } | { kind: 'malformed'; type: RegisteredBlockType }
+
+/**
+ * What the learner is told a skipped block was, in their words rather than the
+ * payload's.
+ *
+ * A malformed block is one of the nine types the app knows, so it can be named. A
+ * block of a type the app has never seen cannot: its `type` is a word the payload
+ * chose, which may mean nothing to a learner or may be a word the model was talked
+ * into, so it is described as what it is to this app rather than echoed.
+ */
+export function describeSkippedBlock(skipped: SkippedBlock): string {
+  return skipped.kind === 'malformed'
+    ? `${blockRegistry[skipped.type].name}, in a shape this app cannot read`
+    : 'Something this version of the app does not know how to show'
+}
 
 export type ParsedBlocks = {
   /** Blocks that parsed, in payload order, ready for the registry. */
