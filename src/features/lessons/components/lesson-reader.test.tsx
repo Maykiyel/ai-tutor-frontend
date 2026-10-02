@@ -244,6 +244,13 @@ function renderReader(lessonId = LESSON_ID) {
   )
 }
 
+/** What the skipped-parts notice says each gap is, one line per gap, in lesson order. */
+function skippedParts(notice: HTMLElement): string[] {
+  return within(notice)
+    .getAllByRole('listitem')
+    .map((item) => item.textContent?.trim() ?? '')
+}
+
 /** The submit action at the foot of the lesson, named by its own words. */
 function sendButton(): HTMLElement {
   return screen.getByRole('button', { name: 'Send my answers' })
@@ -435,9 +442,15 @@ describe('LessonReader', () => {
 
     // A gap must not read as a short lesson.
     // Both unrecognised blocks are counted, so the learner is told the gap is real.
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toHaveTextContent('2 parts of this lesson could not be shown')
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(notice).toHaveTextContent('2 parts of this lesson could not be shown')
+
+    // And told what each gap is, as far as the app can say: a type it has never
+    // seen has no name it could give, so it says exactly that rather than guessing.
+    expect(skippedParts(notice)).toEqual([
+      'Something this version of the app does not know how to show',
+      'Something this version of the app does not know how to show',
+    ])
 
     // The type is logged once, not once per block: two blocks of the same unknown
     // type are one backend bug, and two identical lines would suggest two.
@@ -502,9 +515,11 @@ describe('LessonReader', () => {
       screen.queryByText('This block claims to be a paragraph and carries no content'),
     ).not.toBeInTheDocument()
 
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toBeInTheDocument()
+    // What was skipped is named, so "this lesson is short" and "a paragraph of
+    // this lesson is missing" are not the same screen.
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(notice).toHaveTextContent('One part of this lesson could not be shown')
+    expect(skippedParts(notice)).toEqual(['A paragraph, in a shape this app cannot read'])
   })
 
   it('renders a newer lesson with a warning, rather than refusing it', async () => {
@@ -521,6 +536,18 @@ describe('LessonReader', () => {
     expect(
       screen.getByText(/blocks in this lesson match what the app understands/),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText('This paragraph comes after the gap, and it renders.'),
+    ).toBeInTheDocument()
+
+    // A version bump says a block may have changed shape. The quiz this lesson
+    // carries did, and the lesson also uses a type added after this app was
+    // built: both are skipped, both are named, and nothing else is lost.
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(skippedParts(notice)).toEqual([
+      'A quiz, in a shape this app cannot read',
+      'Something this version of the app does not know how to show',
+    ])
   })
 
   it.each([

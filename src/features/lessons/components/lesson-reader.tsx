@@ -1,4 +1,4 @@
-import { Alert, Box, Container, Stack, Text } from '@mantine/core'
+import { Alert, Box, Container, List, Stack, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 
@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/ui/error-state'
 import { LoadingState } from '@/components/ui/loading-state'
 
 import { LessonProvider } from '../blocks/lesson-context'
-import { parseLessonBlocks } from '../blocks/parse-blocks'
+import { describeSkippedBlock, parseLessonBlocks, type SkippedBlock } from '../blocks/parse-blocks'
 import { blockRegistry, type BlockComponent, type ParsedLessonBlock } from '../blocks/registry'
 import { lessonQueries } from '../queries/lesson-queries'
 import {
@@ -61,7 +61,7 @@ function LessonFrame({ lesson, lessonId }: { lesson: ParsedLessonResponse; lesso
 
           {isNewerThanApp ? <NewerVersionNotice version={lesson.lesson.schemaVersion} /> : null}
 
-          {skipped.length > 0 ? <SkippedBlocksNotice count={skipped.length} /> : null}
+          {skipped.length > 0 ? <SkippedBlocksNotice skipped={skipped} /> : null}
 
           <LessonBlocks blocks={blocks} />
 
@@ -111,8 +111,15 @@ function NewerVersionNotice({ version }: { version: number }) {
  * A gap must not read as a short lesson. When blocks were skipped the learner is
  * told, because "this lesson is brief" and "part of this lesson failed to load"
  * are very different conclusions to draw from the same screen.
+ *
+ * And told what each gap was, one line per skipped block in lesson order. A count
+ * on its own says something is missing but not whether it matters: a missing
+ * heading and a missing quiz are not the same loss, and only the second changes
+ * what the learner can send at the end.
  */
-function SkippedBlocksNotice({ count }: { count: number }) {
+function SkippedBlocksNotice({ skipped }: { skipped: SkippedBlock[] }) {
+  const count = skipped.length
+
   return (
     <Alert
       role="status"
@@ -127,6 +134,12 @@ function SkippedBlocksNotice({ count }: { count: number }) {
           : `${count} parts of this lesson could not be shown. `}
         Everything else below is complete.
       </Text>
+
+      <List size="sm" mt="xs">
+        {skipped.map((block, index) => (
+          <List.Item key={index}>{describeSkippedBlock(block)}</List.Item>
+        ))}
+      </List>
     </Alert>
   )
 }
