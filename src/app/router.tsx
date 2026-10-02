@@ -14,6 +14,7 @@ import { WorkspaceGlossaryPage } from './routes/workspace-glossary.tsx'
 import { WorkspaceHomePage } from './routes/workspace-home.tsx'
 import { WorkspaceLessonPage } from './routes/workspace-lesson.tsx'
 import { WorkspaceLessonsPage } from './routes/workspace-lessons.tsx'
+import { WorkspaceMissionInterviewPage } from './routes/workspace-mission-interview.tsx'
 import { WorkspaceRecordsPage } from './routes/workspace-records.tsx'
 import { WorkspaceReferenceDocPage } from './routes/workspace-reference-doc.tsx'
 import { WorkspaceReferencesPage } from './routes/workspace-references.tsx'
@@ -61,6 +62,10 @@ export const routes: RouteObject[] = [
       {
         path: paths.workspaces.home.path,
         Component: WorkspaceHomePage,
+      },
+      {
+        path: paths.workspaces.missionInterview.path,
+        Component: WorkspaceMissionInterviewPage,
       },
       {
         path: paths.workspaces.lessons.path,

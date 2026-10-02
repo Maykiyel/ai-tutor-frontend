@@ -29,13 +29,13 @@ function ActiveMission({ mission, workspaceId }: { mission: Mission; workspaceId
       </Button>
 
       <Text size="sm" c="dimmed">
-        Changing it needs the mission interview, which is not built yet.
+        Changing a mission needs a confirmed revision, which is not built yet.
       </Text>
     </>
   )
 }
 
-function NoActiveMission() {
+function NoActiveMission({ workspaceId }: { workspaceId: string }) {
   const reasonId = useId()
 
   return (
@@ -47,8 +47,18 @@ function NoActiveMission() {
         A lesson is written to this mission, so there is nothing to ask for until there is one.
       </Text>
 
+      {/* The interview is how a mission comes to exist, so it leads. */}
       <Button
         mt="sm"
+        component={Link}
+        to={paths.workspaces.missionInterview.getHref(workspaceId)}
+        styles={{ root: { alignSelf: 'flex-start' } }}
+      >
+        Start the mission interview
+      </Button>
+
+      <Button
+        variant="default"
         disabled
         aria-describedby={reasonId}
         styles={{ root: { alignSelf: 'flex-start' } }}
@@ -58,15 +68,6 @@ function NoActiveMission() {
 
       <Text id={reasonId} size="sm" c="dimmed">
         Unavailable until this workspace has a mission.
-      </Text>
-
-      {/*
-        The interview is build-order step 4 and out of scope for this spec. The
-        screen says so instead of offering a link to a screen that does not
-        exist: an unavailable action with a reason, never a dead link.
-      */}
-      <Text size="sm" c="dimmed">
-        The mission interview is not built yet.
       </Text>
     </>
   )
@@ -104,7 +105,7 @@ function MissionSection({ workspaceId }: { workspaceId: string }) {
       {activeMission ? (
         <ActiveMission mission={activeMission} workspaceId={workspaceId} />
       ) : (
-        <NoActiveMission />
+        <NoActiveMission workspaceId={workspaceId} />
       )}
     </Stack>
   )

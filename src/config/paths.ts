@@ -17,6 +17,12 @@ export const paths = {
       path: '/workspaces/:workspaceId/home',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/home`,
     },
+    // Runs while the workspace has no active mission. Not in the sidebar: it is
+    // reached from the workspace home, where the missing mission is explained.
+    missionInterview: {
+      path: '/workspaces/:workspaceId/mission-interview',
+      getHref: (workspaceId: string) => `/workspaces/${workspaceId}/mission-interview`,
+    },
     lessons: {
       path: '/workspaces/:workspaceId/lessons',
       getHref: (workspaceId: string) => `/workspaces/${workspaceId}/lessons`,

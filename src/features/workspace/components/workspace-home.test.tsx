@@ -76,8 +76,10 @@ describe('WorkspaceHome', () => {
     expect(nextLesson).toBeDisabled()
     expect(nextLesson).toHaveAccessibleDescription(/until this workspace has a mission/i)
     expect(screen.getByText(/a lesson is written to this mission/i)).toBeInTheDocument()
-    expect(screen.getByText(/mission interview is not built yet/i)).toBeInTheDocument()
-    // A link would send the learner somewhere that is not built.
+    expect(screen.getByRole('link', { name: /start the mission interview/i })).toHaveAttribute(
+      'href',
+      paths.workspaces.missionInterview.getHref('7'),
+    )
     expect(screen.queryByRole('link', { name: /next lesson/i })).not.toBeInTheDocument()
   })
 
