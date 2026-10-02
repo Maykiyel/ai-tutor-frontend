@@ -11,30 +11,13 @@ import { missionResponseSchema, type Mission } from './mission-schema'
  * Shared between the workspace home and the lesson list; see `mission-schema.ts`
  * for why it is not owned by a feature.
  *
- * A backend may answer "no mission here" with an empty body or with a 404,
- * because nothing in `docs/backend-onboarding.md` says which. Both mean the same
- * thing to this screen, so both come back as null. Any other failure is
- * rethrown so the screen can offer a retry.
+ * "No mission here" is 200 with `data: null`, as agreed with the backend, and
+ * parses to null. A 404 is not that: it means the workspace is not the
+ * learner's, so it is left to fail like any other error and the screen offers a
+ * retry rather than claiming the workspace simply has no mission.
  */
 export async function getMission(workspaceId: string): Promise<Mission | null> {
-  try {
-    const response = await apiClient.get(missionEndpoints.mission(workspaceId))
+  const response = await apiClient.get(missionEndpoints.mission(workspaceId))
 
-    return missionResponseSchema.parse(response.data)
-  } catch (error) {
-    if (isNotFound(error)) {
-      return null
-    }
-
-    throw error
-  }
-}
-
-function isNotFound(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    (error as { response?: { status?: number } }).response?.status === 404
-  )
+  return missionResponseSchema.parse(response.data)
 }
