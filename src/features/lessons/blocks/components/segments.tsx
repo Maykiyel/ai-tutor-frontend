@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Anchor, Code, Popover, Stack, Text } from '@mantine/core'
 import { Link, useParams } from 'react-router'
 
@@ -74,6 +74,15 @@ function SegmentText({ segment }: { segment: Segment }) {
  * that focus lands on it while tabbing through the lesson and so that
  * `aria-expanded` has something to describe; the surrounding prose reads exactly
  * as it did before the term became interactive.
+ *
+ * The card is for the eye. A screen reader stays on the button when the card
+ * opens and never visits a popover it was not sent into, so the definition also
+ * reaches the ear as the button's description, from a copy that is `hidden`: it
+ * is read when the term is focused and skipped when the sentence is read through.
+ *
+ * Escape closes the card and leaves focus on the term. Content that appears on
+ * focus has to be dismissible without moving focus, or a learner who wants the
+ * card out of the way has to leave the sentence they are reading to get rid of it.
  */
 function TermSegment({
   segment,
@@ -84,62 +93,85 @@ function TermSegment({
 }) {
   const [pointed, setPointed] = useState(false)
   const [focused, setFocused] = useState(false)
+  // Escape wins until the learner points or focuses again, so a dismissed card
+  // does not reopen under a pointer or a focus that never left.
+  const [dismissed, setDismissed] = useState(false)
+  const definitionId = useId()
 
   if (!term) {
     return reportMissingTerm(segment.termId, segment.text)
   }
 
-  const open = pointed || focused
+  const open = (pointed || focused) && !dismissed
 
   return (
-    <Popover
-      opened={open}
-      onChange={setPointed}
-      position="top"
-      withArrow
-      arrowSize={6}
-      arrowOffset={4}
-      shadow="md"
-      radius="md"
-      width={280}
-      // The card holds no controls, so focus never needs to move into it and
-      // leaving the term closes the card whether the pointer or the keyboard
-      // moved.
-      trapFocus={false}
-      closeOnEscape
-    >
-      <Popover.Target>
-        <Anchor
-          component="button"
-          type="button"
-          underline="always"
-          fw={500}
-          onMouseEnter={() => setPointed(true)}
-          onMouseLeave={() => setPointed(false)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        >
-          {segment.text}
-        </Anchor>
-      </Popover.Target>
+    <>
+      <Popover
+        opened={open}
+        onChange={setPointed}
+        position="top"
+        withArrow
+        arrowSize={6}
+        arrowOffset={4}
+        shadow="md"
+        radius="md"
+        width={280}
+        // The card holds no controls, so focus never needs to move into it and
+        // leaving the term closes the card whether the pointer or the keyboard
+        // moved.
+        trapFocus={false}
+        closeOnEscape
+      >
+        <Popover.Target>
+          <Anchor
+            component="button"
+            type="button"
+            underline="always"
+            fw={500}
+            aria-describedby={definitionId}
+            onMouseEnter={() => {
+              setDismissed(false)
+              setPointed(true)
+            }}
+            onMouseLeave={() => setPointed(false)}
+            onFocus={() => {
+              setDismissed(false)
+              setFocused(true)
+            }}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && open) {
+                event.stopPropagation()
+                setDismissed(true)
+              }
+            }}
+          >
+            {segment.text}
+          </Anchor>
+        </Popover.Target>
 
-      <Popover.Dropdown>
-        <Stack gap={4}>
-          <Text component="p" size="sm">
-            {term.definition}
-          </Text>
+        <Popover.Dropdown>
+          <Stack gap={4}>
+            <Text component="p" size="sm">
+              {term.definition}
+            </Text>
 
-          {term.avoid && term.avoid.length > 0 ? (
-            <Text component="p" size="xs" c="dimmed">
-              {/* The aliases travel with the definition so the learner keeps one
+            {term.avoid && term.avoid.length > 0 ? (
+              <Text component="p" size="xs" c="dimmed">
+                {/* The aliases travel with the definition so the learner keeps one
                   word per idea without having to remember which word the
                   lessons chose. */}
-              Avoid: {term.avoid.join(', ')}
-            </Text>
-          ) : null}
-        </Stack>
-      </Popover.Dropdown>
-    </Popover>
+                Avoid: {term.avoid.join(', ')}
+              </Text>
+            ) : null}
+          </Stack>
+        </Popover.Dropdown>
+      </Popover>
+
+      <span id={definitionId} hidden>
+        {term.definition}
+      </span>
+    </>
   )
 }
 
