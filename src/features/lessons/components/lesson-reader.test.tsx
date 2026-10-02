@@ -14,6 +14,7 @@ import {
   rc1ExpectedAnswer,
   rc1Rubric,
 } from '../fixtures/attempt-result-fixtures'
+import { attemptRejectedError, gradingUnavailableError } from '../fixtures/http-error-fixtures'
 import {
   attemptFixture,
   conceptFixture,
@@ -1928,7 +1929,7 @@ describe('LessonReader', () => {
     for (const line of rc1Rubric) {
       expect(region).toHaveTextContent(line)
     }
-    expect(region).toHaveTextContent('What a good answer says:')
+    expect(region).toHaveTextContent('Feedback on your answer:')
 
     // The prompt they wrote this against is named, so a result about rc1 is findable
     // in a lesson with more than one prompt in it.
@@ -2028,6 +2029,86 @@ describe('LessonReader', () => {
 
     expect(vi.mocked(submitAttempt)).toHaveBeenCalledTimes(2)
     expect(sentAttempts()[1]).toEqual(sentAttempts()[0])
+    expect(recallBox(rc1.prompt)).toHaveValue(typed)
+  })
+
+  it('names the option the learner chose by its words, not by its letter', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const chosen = await pickOption(learner, attemptQuestions()[0], true)
+    await learner.click(sendButton())
+
+    const result = await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    const region = result.closest('section')!
+
+    expect(region).toHaveTextContent(`You chose: ${chosen.text}`)
+    expect(region).not.toHaveTextContent(`You chose: ${chosen.id}`)
+  })
+
+  it('asks for the same answers again when the grader is unavailable, and keeps them', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt)
+      .mockRejectedValueOnce(gradingUnavailableError())
+      .mockResolvedValue(parseAttemptResult(attemptResultResponse))
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [rc1] = recallsOf(attemptFixture)
+    const typed = 'Because the 2 multiplies whatever is left.'
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.type(recallBox(rc1.prompt), typed)
+    await learner.click(sendButton())
+
+    expect(await screen.findByText('Your answers could not be graded just now')).toBeInTheDocument()
+    expect(screen.getByText(/Send the same answers again/)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { level: 2, name: 'How your answers went' }),
+    ).not.toBeInTheDocument()
+    expect(recallBox(rc1.prompt)).toHaveValue(typed)
+
+    await learner.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await screen.findByRole('heading', { level: 2, name: 'How your answers went' })
+    expect(sentAttempts()[1]).toEqual(sentAttempts()[0])
+  })
+
+  it('treats a refused attempt as not graded, offers no retry, and keeps the answers', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(getLesson).mockResolvedValue(attemptFixture)
+    vi.mocked(submitAttempt).mockRejectedValueOnce(attemptRejectedError())
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Answers and the checklist' })
+
+    const [rc1] = recallsOf(attemptFixture)
+    const typed = 'Because order is fixed.'
+
+    await pickOption(learner, attemptQuestions()[0], true)
+    await learner.type(recallBox(rc1.prompt), typed)
+    await learner.click(sendButton())
+
+    expect(await screen.findByText('Your answers were not accepted')).toBeInTheDocument()
+    expect(screen.getByText(/a fault in the app rather than in your answers/)).toBeInTheDocument()
+
+    // Not a result: no summary, no verdicts, nothing that reads as graded.
+    expect(
+      screen.queryByRole('heading', { level: 2, name: 'How your answers went' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('note', { name: 'Not quite' })).not.toBeInTheDocument()
+
+    // The same request would be refused the same way, so nothing offers to send it.
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(recallBox(rc1.prompt)).toHaveValue(typed)
   })
 

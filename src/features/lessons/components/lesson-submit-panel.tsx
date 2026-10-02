@@ -3,6 +3,7 @@ import { Alert, Box, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 
 import { ErrorState } from '@/components/ui/error-state'
+import { getHttpStatus } from '@/lib/api/http-status'
 
 import { useLesson } from '../blocks/lesson-context'
 import type { ParsedLessonBlock } from '../blocks/registry'
@@ -40,6 +41,7 @@ import { summariseAttempt, summarySentence } from '../attempt/summarise-attempt'
  * 2. **Ready.** One press sends one attempt.
  * 3. **Failed.** Reported, and nothing is cleared — a retry is one press and no
  *    retyping, which is the whole point of the answer stores outliving the failure.
+ *    How it is reported depends on why: see `SubmitFailure`.
  * 4. **Sent.** The attempt stays on screen and the answer stores are emptied.
  *
  * On success the stores *are* emptied, and the request that was sent is kept beside
@@ -124,13 +126,7 @@ export function LessonSubmitPanel({
     <Stack component="section" gap="md">
       <Title order={2}>Send your answers</Title>
 
-      {submit.isError ? (
-        <ErrorState
-          title="Your answers were not sent"
-          message="Nothing was lost: everything you typed and picked is still here, and sending again costs you nothing. Try again."
-          onRetry={send}
-        />
-      ) : null}
+      {submit.isError ? <SubmitFailure error={submit.error} onRetry={send} /> : null}
 
       <Group align="flex-start" justify="space-between" wrap="nowrap" gap="md">
         {/* `aria-describedby` rather than a tooltip: the reason has to be on the page
@@ -147,6 +143,53 @@ export function LessonSubmitPanel({
         {gradedAnswers === 0 ? <WhyNotSend id={reasonId} hasGradedBlock={hasGradedBlock} /> : null}
       </Group>
     </Stack>
+  )
+}
+
+/**
+ * A submission that did not come back graded, reported for what it was.
+ *
+ * - **503:** the backend could not grade the recall answers just now and stored
+ *   nothing. Sending the same answers again is exactly the right move, so that is
+ *   what the screen offers.
+ * - **422:** the backend refused the request itself, which means this app built an
+ *   attempt naming something the lesson does not have. Nothing was graded. The
+ *   same request would be refused the same way, so no retry is offered; the
+ *   learner is told the fault is the app's, not theirs.
+ * - **Anything else** (the network, a server error): nothing is known to have
+ *   been stored, and a retry costs nothing.
+ *
+ * In every case the answers stay where they are, because nothing that failed
+ * here was a grade.
+ */
+function SubmitFailure({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const status = getHttpStatus(error)
+
+  if (status === 503) {
+    return (
+      <ErrorState
+        title="Your answers could not be graded just now"
+        message="Nothing was saved, and everything you typed and picked is still here. Send the same answers again."
+        onRetry={onRetry}
+      />
+    )
+  }
+
+  if (status === 422) {
+    return (
+      <ErrorState
+        title="Your answers were not accepted"
+        message="This app sent them in a form the lesson could not match, which is a fault in the app rather than in your answers. Nothing was graded, and your answers are still here."
+      />
+    )
+  }
+
+  return (
+    <ErrorState
+      title="Your answers were not sent"
+      message="Nothing was lost: everything you typed and picked is still here, and sending again costs you nothing. Try again."
+      onRetry={onRetry}
+    />
   )
 }
 
@@ -209,7 +252,11 @@ function AttemptResult({
           <PerAnswerNote
             key={`${entry.type}-${entry.id}`}
             entry={entry}
-            answer={entry.type === 'quiz' ? submitted.quiz[entry.id] : submitted.recall[entry.id]}
+            answer={
+              entry.type === 'quiz'
+                ? findOptionText(blocks, entry.id, submitted.quiz[entry.id])
+                : submitted.recall[entry.id]
+            }
             prompt={findPrompt(blocks, entry.type, entry.id)}
           />
         ))}
@@ -287,15 +334,17 @@ function PerAnswerNote({
         </Text>
 
         {/*
-            For a recall these words are the expected answer and the rubric, and they
-            are labelled as what they are. `feedback` is the only channel the contract
-            gives them: the lesson response strips both, and `perAnswer` has no field
-            for either. They arrive here and nowhere earlier, which is the whole
-            reason the recall block can ask for an answer from memory.
+            For a recall these words are the grader's: what the answer got right, what
+            it missed, and what the expected answer covered. `feedback` is the only
+            channel the contract gives the expected answer and the rubric, since the
+            lesson response strips both and `perAnswer` has no field for either, so
+            they arrive here and nowhere earlier. The label says only that this is
+            feedback: the words are free text, and a label claiming they are the model
+            answer would be wrong whenever the grader writes an evaluation instead.
         */}
         {entry.type === 'recall' ? (
           <Text component="p" size="sm" fw={500}>
-            What a good answer says:
+            Feedback on your answer:
           </Text>
         ) : null}
 
@@ -360,6 +409,37 @@ function RecordNote({ candidate }: { candidate: RecordCandidate }) {
  * reading it and the attempt coming back — and the note is then named by its verdict
  * alone rather than by a question the learner cannot find on the page.
  */
+/**
+ * The words of the option the learner picked, looked up in the lesson. The attempt
+ * carries the option's id, a letter that means nothing on its own, so the result
+ * says what the learner actually chose. Falls back to the id if the lesson no
+ * longer has the option, which cannot happen for an attempt built from this page.
+ */
+function findOptionText(
+  blocks: ParsedLessonBlock[],
+  questionId: string,
+  optionId: string | undefined,
+): string | undefined {
+  if (optionId === undefined) {
+    return undefined
+  }
+
+  for (const parsed of blocks) {
+    if (parsed.type !== 'quiz') {
+      continue
+    }
+
+    const question = parsed.block.questions.find((candidate) => candidate.id === questionId)
+    const option = question?.options.find((candidate) => candidate.id === optionId)
+
+    if (option) {
+      return option.text
+    }
+  }
+
+  return optionId
+}
+
 function findPrompt(
   blocks: ParsedLessonBlock[],
   type: 'quiz' | 'recall',
