@@ -1,6 +1,7 @@
-import { ScrollArea, Table } from '@mantine/core'
+import { Table } from '@mantine/core'
 
 import type { TableBlock } from '../../schemas/lesson-schema'
+import { SidewaysScroll } from './sideways-scroll'
 
 /**
  * A comparison, as a real table: a header row, body rows, and a cell per column
@@ -23,9 +24,13 @@ export function TableBlockView({ block }: { block: TableBlock }) {
   // worth dropping or quietly truncating over a cell count. The backend is the
   // layer that rejects such a lesson at write time.
   const columns = Math.max(block.headers.length, ...block.rows.map((row) => row.length), 0)
+  // The payload gives a table no title, so its headers are what it is called:
+  // they are the words that say what is being compared.
+  const headers = block.headers.filter((header) => header.trim() !== '')
+  const label = headers.length > 0 ? `Table: ${headers.join(', ')}` : 'Table'
 
   return (
-    <ScrollArea type="auto" scrollbars="x" offsetScrollbars scrollbarSize={12}>
+    <SidewaysScroll label={label}>
       <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing="sm">
         <Table.Thead>
           <Table.Tr>
@@ -47,6 +52,6 @@ export function TableBlockView({ block }: { block: TableBlock }) {
           ))}
         </Table.Tbody>
       </Table>
-    </ScrollArea>
+    </SidewaysScroll>
   )
 }

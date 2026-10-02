@@ -111,12 +111,17 @@ export const codeBlockSchema = z.object({
  * text and never a placeholder, so the reader always has words to fall back on
  * even when the figure itself cannot be shown. Mirrors `figureBlock` in
  * `docs/lesson-schema.json`.
+ *
+ * A blank `alt` fails the block, as the contract's pattern does. An `<img alt="">`
+ * is skipped by a screen reader as decoration and a drawing with no name is read
+ * as "image" and nothing more, so a figure without words is a block the learner
+ * is told is missing rather than one half of them cannot perceive.
  */
 export const figureBlockSchema = z.object({
   type: z.literal('figure'),
   kind: z.enum(['svg', 'mermaid', 'image']),
   source: z.string(),
-  alt: z.string(),
+  alt: z.string().regex(/\S/),
   caption: z.string().optional(),
 })
 

@@ -309,13 +309,27 @@ Ship each step end to end before starting the next.
 - **How the frontend learns a queued job finished.** Polling a job status endpoint,
   polling the lesson list, or pushing events. Needs agreement with the backend
   developer.
-- **When attempts are submitted.** Once at the end of the lesson, or after each practice
-  block.
-- **How citations look.** Inline links, numbered footnotes, or both.
 - Whether the lesson reader needs offline support. Currently out of scope.
 
+### Settled by the lesson reader spec
+
+These two were on the open list above. The questions stay here so the reasoning can be
+traced; the answers are what the reader now does.
+
+- **When attempts are submitted.** The question was once at the end of the lesson, or
+  after each practice block. Settled as once, at the end. One "Send my answers" action
+  sits at the foot of the lesson and sends every quiz pick, recall answer and step tick
+  as a single attempt. Quiz feedback is still instant, because the answers ship with
+  the lesson. The attempt contract in `docs/lesson-schema.json` carries one `answers`
+  array per request.
+- **How citations look.** The question was inline links, numbered footnotes, or both.
+  Settled as an inline link plus a source list. A `cite` segment is a link in the prose
+  to its source. The lesson then ends with a list of every source it cites, by title,
+  and says which one to read first. There are no numbered footnotes.
+
 Settled, do not reopen: authentication and session handling, streaming versus whole
-lessons, the HTTP mocking library, and the vocabulary in `GLOSSARY.md`.
+lessons, the HTTP mocking library, the vocabulary in `GLOSSARY.md`, when attempts are
+submitted, and how citations look.
 
 ## Risks
 

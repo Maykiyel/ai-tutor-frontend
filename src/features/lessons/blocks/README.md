@@ -14,7 +14,9 @@ types working as the format grows.
 2. **Add the component** to `./components/<name>-block.tsx`. It takes
    `{ block }` and nothing else. If it needs the hydrated maps or the lesson, take
    them from `LessonContext` rather than changing the props every block receives.
-3. **Register it** — one entry in `blockRegistry` in `registry.ts`. Add the parsed
+3. **Register it** — one entry in `blockRegistry` in `registry.ts`, carrying the
+   schema, the component, and the `name` the learner is told when a block of this
+   type arrives broken and is skipped ("A quiz"). Add the parsed
    block to the `LessonBlock` union in `../schemas/lesson-schema.ts` as well; if
    the type is new to the contract, add it to `lessonBlockTypeSchema` too. Both
    unions are what make `ParsedLessonBlock` distribute, so a type left out of one

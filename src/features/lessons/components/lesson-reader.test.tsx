@@ -235,13 +235,81 @@ function answersOfType(attempt: { answers: unknown[] }, type: string): Record<st
   )
 }
 
-function renderReader(lessonId = LESSON_ID) {
+function renderReader(lessonId = LESSON_ID, colorScheme?: 'light' | 'dark') {
   return renderWithRouter(
     <Routes>
       <Route path={paths.workspaces.lessonDetail.path} element={<LessonReader />} />
     </Routes>,
     [paths.workspaces.lessonDetail.getHref(WORKSPACE_ID, lessonId)],
+    { colorScheme },
   )
+}
+
+/**
+ * Every trace of executable content anywhere in the document, as a list a failure
+ * can print: an element that runs or loads code, an attribute that is an event
+ * handler, an animation that could rewrite an attribute into one, and any
+ * attribute whose value is a script or data url once the whitespace and control
+ * characters a browser ignores inside a scheme are taken out.
+ *
+ * The whole document rather than the lesson's container, because a figure that
+ * escaped into a portal or into `<head>` would still be in the learner's page.
+ * Empty is the only acceptable answer, in either colour scheme.
+ */
+function scriptTraces(): string[] {
+  const traces: string[] = []
+  const executable = new Set([
+    'script',
+    'iframe',
+    'embed',
+    'object',
+    'foreignobject',
+    'animate',
+    'set',
+    'handler',
+  ])
+
+  for (const element of document.documentElement.querySelectorAll('*')) {
+    const tag = element.tagName.toLowerCase()
+
+    if (executable.has(tag)) {
+      traces.push(`<${tag}>`)
+    }
+
+    for (const { name, value } of Array.from(element.attributes)) {
+      const scheme = value.replace(/[s -]/g, '').toLowerCase()
+
+      if (name.toLowerCase().startsWith('on')) {
+        traces.push(`<${tag} ${name}>`)
+      }
+
+      if (/^(javascript|vbscript|data):/.test(scheme)) {
+        traces.push(`<${tag} ${name}="${value.slice(0, 40)}">`)
+      }
+    }
+  }
+
+  return traces
+}
+
+/**
+ * The diagram of the given alt text, once mermaid has drawn it. The figure is on
+ * the page, named and busy, from the first render; this waits for the busy state
+ * to clear, which is the moment the drawing has landed in it.
+ */
+async function drawnDiagram(name: string): Promise<HTMLElement> {
+  const figure = screen.getByRole('img', { name })
+
+  await waitFor(() => expect(figure).not.toHaveAttribute('aria-busy'), { timeout: 30_000 })
+
+  return figure
+}
+
+/** What the skipped-parts notice says each gap is, one line per gap, in lesson order. */
+function skippedParts(notice: HTMLElement): string[] {
+  return within(notice)
+    .getAllByRole('listitem')
+    .map((item) => item.textContent?.trim() ?? '')
 }
 
 /** The submit action at the foot of the lesson, named by its own words. */
@@ -435,9 +503,15 @@ describe('LessonReader', () => {
 
     // A gap must not read as a short lesson.
     // Both unrecognised blocks are counted, so the learner is told the gap is real.
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toHaveTextContent('2 parts of this lesson could not be shown')
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(notice).toHaveTextContent('2 parts of this lesson could not be shown')
+
+    // And told what each gap is, as far as the app can say: a type it has never
+    // seen has no name it could give, so it says exactly that rather than guessing.
+    expect(skippedParts(notice)).toEqual([
+      'Something this version of the app does not know how to show',
+      'Something this version of the app does not know how to show',
+    ])
 
     // The type is logged once, not once per block: two blocks of the same unknown
     // type are one backend bug, and two identical lines would suggest two.
@@ -502,9 +576,11 @@ describe('LessonReader', () => {
       screen.queryByText('This block claims to be a paragraph and carries no content'),
     ).not.toBeInTheDocument()
 
-    expect(
-      screen.getByRole('status', { name: 'Part of this lesson is missing' }),
-    ).toBeInTheDocument()
+    // What was skipped is named, so "this lesson is short" and "a paragraph of
+    // this lesson is missing" are not the same screen.
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(notice).toHaveTextContent('One part of this lesson could not be shown')
+    expect(skippedParts(notice)).toEqual(['A paragraph, in a shape this app cannot read'])
   })
 
   it('renders a newer lesson with a warning, rather than refusing it', async () => {
@@ -521,6 +597,18 @@ describe('LessonReader', () => {
     expect(
       screen.getByText(/blocks in this lesson match what the app understands/),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText('This paragraph comes after the gap, and it renders.'),
+    ).toBeInTheDocument()
+
+    // A version bump says a block may have changed shape. The quiz this lesson
+    // carries did, and the lesson also uses a type added after this app was
+    // built: both are skipped, both are named, and nothing else is lost.
+    const notice = screen.getByRole('status', { name: 'Part of this lesson is missing' })
+    expect(skippedParts(notice)).toEqual([
+      'A quiz, in a shape this app cannot read',
+      'Something this version of the app does not know how to show',
+    ])
   })
 
   it.each([
@@ -842,44 +930,55 @@ describe('LessonReader', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders a figure carrying a script and an event handler with neither of them in the page', async () => {
-    vi.mocked(getLesson).mockResolvedValue(hostileSvgFixture)
+  it.each(['light', 'dark'] as const)(
+    'renders a figure carrying a script, an event handler, or a script url with none of it in the page, in the %s scheme',
+    async (scheme) => {
+      vi.mocked(getLesson).mockResolvedValue(hostileSvgFixture)
 
-    const { container } = renderReader()
+      const { container } = renderReader(LESSON_ID, scheme)
 
-    await screen.findByRole('heading', { level: 1, name: 'A figure the model was talked into' })
+      await screen.findByRole('heading', { level: 1, name: 'A figure the model was talked into' })
+      // The scheme the learner would see, read off the page rather than assumed.
+      expect(document.documentElement).toHaveAttribute('data-mantine-color-scheme', scheme)
 
-    // The lesson still reads. A figure the model was talked into is still a
-    // figure, and one that fails to render must not cost the learner the lesson.
-    expect(screen.getByText('The paragraph after the figure renders.')).toBeInTheDocument()
-    const figure = screen.getByRole('img', {
-      name: 'A bar chart the payload tried to make run code',
-    })
+      // The lesson still reads. A figure the model was talked into is still a
+      // figure, and one that fails to render must not cost the learner the lesson.
+      expect(screen.getByText('The paragraph after the figure renders.')).toBeInTheDocument()
+      const figure = screen.getByRole('img', {
+        name: 'A bar chart the payload tried to make run code',
+      })
 
-    // Nothing the payload sent became markup. The stored copy was already
-    // sanitised by the backend; this is the second layer, and it is the layer
-    // that has to hold. See ADR-0001.
-    expect(container.querySelector('script')).toBeNull()
-    expect(document.querySelector('script')).toBeNull()
-    expect(container.querySelector('[onload], [onclick], [onerror], [onmouseover]')).toBeNull()
-    // The svg profile rather than the html one: the payload's html element went
-    // with its `foreignObject`, so there is no route from a lesson into a div.
-    expect(figure.querySelector('foreignObject')).toBeNull()
-    expect(figure.querySelector('svg div')).toBeNull()
-    // Nor can a lesson name a colour, a size, or a spacing of its own: the
-    // payload's inline css and its stylesheet went with the rest of it.
-    expect(figure.querySelector('style')).toBeNull()
-    expect(figure.querySelector('[style]')).toBeNull()
-    // Only http and https urls are followed, in a figure as anywhere else.
-    expect(container.querySelector('a[href^="javascript:"]')).toBeNull()
-    expect(container.querySelector('image[href^="data:"]')).toBeNull()
-    expect(container.innerHTML).not.toContain('__lessonPwned')
+      // Nothing the payload sent became markup. The stored copy was already
+      // sanitised by the backend; this is the second layer, and it is the layer
+      // that has to hold. See ADR-0001.
+      expect(container.querySelector('script')).toBeNull()
+      expect(document.querySelector('script')).toBeNull()
+      expect(container.querySelector('[onload], [onclick], [onerror], [onmouseover]')).toBeNull()
+      // The svg profile rather than the html one: the payload's html element went
+      // with its `foreignObject`, so there is no route from a lesson into a div.
+      expect(figure.querySelector('foreignObject')).toBeNull()
+      expect(figure.querySelector('svg div')).toBeNull()
+      // Nor can a lesson name a colour, a size, or a spacing of its own: the
+      // payload's inline css and its stylesheet went with the rest of it.
+      expect(figure.querySelector('style')).toBeNull()
+      expect(figure.querySelector('[style]')).toBeNull()
+      // Only http and https urls are followed, in a figure as anywhere else.
+      expect(container.querySelector('a[href^="javascript:"]')).toBeNull()
+      expect(container.querySelector('image[href^="data:"]')).toBeNull()
+      expect(container.innerHTML).not.toContain('__lessonPwned')
 
-    // And nothing ran: the payload sets this from its script, its onload, and
-    // its onclick, so an undefined value is the proof that none of the three
-    // reached a browser that executes them.
-    expect((window as { __lessonPwned?: boolean }).__lessonPwned).toBeUndefined()
-  })
+      // Every other route the payload tried — a mixed-case and an encoded
+      // `javascript:` scheme, an animation rewriting a link, html inside
+      // `foreignObject`, a `data:` reference, embedding elements, an upper-case
+      // handler — is gone from the whole document, not only from the figure.
+      expect(scriptTraces()).toEqual([])
+
+      // And nothing ran: the payload sets this from every one of those routes, so
+      // an undefined value is the proof that none of them reached a browser that
+      // executes them.
+      expect((window as { __lessonPwned?: boolean }).__lessonPwned).toBeUndefined()
+    },
+  )
 
   it('keeps a wide figure inside its own scroll area instead of widening the lesson', async () => {
     vi.mocked(getLesson).mockResolvedValue(wideFigureFixture)
@@ -905,11 +1004,23 @@ describe('LessonReader', () => {
 
       await screen.findByRole('heading', { level: 1, name: 'The move, as a diagram' })
 
-      const diagram = await screen.findByRole(
-        'img',
-        { name: 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2' },
-        { timeout: 30_000 },
-      )
+      // Before the drawing arrives the figure is already there, named by its alt
+      // text and marked busy, so a learner reading past it hears what it will show
+      // rather than meeting a gap, and a sighted one sees that something is coming.
+      const name = 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2'
+      const waiting = screen.getByRole('img', { name })
+      expect(waiting).toHaveAttribute('aria-busy', 'true')
+      expect(waiting).toHaveTextContent('Drawing the diagram')
+
+      // The drawing lands in that same element, so nothing is inserted above the
+      // learner's place and the figure they may have focused or read past is still
+      // the one that now holds the diagram.
+      await waitFor(() => expect(waiting).toHaveTextContent('Add 4 to both sides'), {
+        timeout: 30_000,
+      })
+      const diagram = screen.getByRole('img', { name })
+      expect(diagram).toBe(waiting)
+      expect(diagram).not.toHaveAttribute('aria-busy')
 
       // The words of the diagram are the learner's to read, and the caption that
       // came with the block sits under it.
@@ -922,22 +1033,23 @@ describe('LessonReader', () => {
     DIAGRAM_TIMEOUT,
   )
 
-  it(
-    'draws a diagram as inert text: no html label and nothing to click',
-    async () => {
+  it.each(['light', 'dark'] as const)(
+    'draws a diagram as inert text, with no html label and nothing to click, in the %s scheme',
+    async (scheme) => {
       vi.mocked(getLesson).mockResolvedValue(figureMermaidFixture)
 
-      const { container } = renderReader()
+      const { container } = renderReader(LESSON_ID, scheme)
 
       await screen.findByRole('heading', { level: 1, name: 'The move, as a diagram' })
+      // Mermaid draws with a different theme in each scheme, so the dark drawing is
+      // a different piece of markup from the light one and is checked on its own.
+      expect(document.documentElement).toHaveAttribute('data-mantine-color-scheme', scheme)
 
       // Mermaid runs in strict mode with html labels off, so a label is words. The
       // payload's `<b>` stayed in the label as the four characters the learner sees,
       // and never became an element. See ADR-0001.
-      const labelled = await screen.findByRole(
-        'img',
-        { name: 'A diagram whose label carries markup and whose box carries a click' },
-        { timeout: 30_000 },
+      const labelled = await drawnDiagram(
+        'A diagram whose label carries markup and whose box carries a click',
       )
       // Mermaid lays a label out word by word, so the four characters the learner
       // reads are the ones that matter, not the spacing between them.
@@ -949,6 +1061,7 @@ describe('LessonReader', () => {
       // one the payload asked for ran script.
       expect(labelled.querySelector('a[href]')).toBeNull()
       expect(container.querySelector('svg a[href^="javascript:"]')).toBeNull()
+      expect(scriptTraces()).toEqual([])
       expect((window as { __lessonPwned?: boolean }).__lessonPwned).toBeUndefined()
     },
     DIAGRAM_TIMEOUT,
@@ -974,12 +1087,8 @@ describe('LessonReader', () => {
       ).toBeInTheDocument()
 
       expect(
-        await screen.findByRole(
-          'img',
-          { name: 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2' },
-          { timeout: 30_000 },
-        ),
-      ).toBeInTheDocument()
+        await drawnDiagram('Two boxes and an arrow, from 2x + 3 = 11 to x = 2'),
+      ).toHaveTextContent('Add 4 to both sides')
     },
     DIAGRAM_TIMEOUT,
   )

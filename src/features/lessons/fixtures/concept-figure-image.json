@@ -39,6 +39,13 @@
         "kind": "image",
         "source": "javascript:window.__lessonPwned = true",
         "alt": "A screenshot the payload tried to make a link"
+      },
+      {
+        "type": "figure",
+        "kind": "image",
+        "source": "https://example.org/a-picture-nobody-described.png",
+        "alt": " ",
+        "caption": "The model drew this and forgot to say what it shows."
       }
     ]
   },

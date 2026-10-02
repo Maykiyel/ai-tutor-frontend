@@ -26,6 +26,29 @@
             "text": "The blocks in this lesson match what the app understands, so they render even though the lesson as a whole is newer than the app."
           }
         ]
+      },
+      {
+        "type": "quiz",
+        "items": [
+          {
+            "id": "q1",
+            "ask": "In version 3 a quiz question is an item with an ask, which this app has never seen.",
+            "choices": ["One", "Two", "Three"]
+          }
+        ]
+      },
+      {
+        "type": "poll",
+        "question": "A block type added after this app was built."
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "This paragraph comes after the gap, and it renders."
+          }
+        ]
       }
     ]
   },

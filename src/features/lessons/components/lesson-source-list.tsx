@@ -1,6 +1,7 @@
 import { Anchor, Box, List, Stack, Text, Title } from '@mantine/core'
 
 import { useLesson } from '../blocks/lesson-context'
+import { linkDecoration } from '../lib/link-decoration'
 import { externalLinkAttributes, followableUrl } from '../lib/source-url'
 
 /**
@@ -40,7 +41,13 @@ export function LessonSourceList() {
             <List.Item key={resourceId}>
               <Stack gap={2}>
                 {url ? (
-                  <Anchor component="a" href={url} {...externalLinkAttributes}>
+                  <Anchor
+                    component="a"
+                    href={url}
+                    underline="always"
+                    style={linkDecoration}
+                    {...externalLinkAttributes}
+                  >
                     {resource.title}
                   </Anchor>
                 ) : (
