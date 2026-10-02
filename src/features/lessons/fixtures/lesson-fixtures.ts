@@ -50,10 +50,13 @@ export const figureImageFixture = parseLessonResponse(conceptFigureImage)
 export const figureSvgFixture = parseLessonResponse(conceptFigureSvg)
 
 /**
- * Inline svg carrying a script element, three event handlers, a `javascript:`
- * href, and a `data:` image. The backend sanitised this row too, and five
- * bypasses in that sanitizer's history is why the frontend sanitises again. See
- * ADR-0001.
+ * Inline svg carrying a script element, event handlers (one in upper case), a
+ * `javascript:` href written plainly, in mixed case in the xlink namespace and
+ * with character references inside the scheme, `data:` images and a `data:`
+ * `<use>`, animations that rewrite a link and add a handler, html smuggled in
+ * through `foreignObject`, and `embed`, `object` and `iframe`. The backend
+ * sanitised this row too, and five bypasses in that sanitizer's history is why the
+ * frontend sanitises again. See ADR-0001.
  */
 export const hostileSvgFixture = parseLessonResponse(conceptFigureSvgHostile)
 

@@ -16,7 +16,15 @@ function createTestQueryClient() {
   })
 }
 
-function TestProviders({ children }: PropsWithChildren) {
+type TestProviderOptions = {
+  /**
+   * Pins the colour scheme, for a claim that has to hold in both. Left unset, the
+   * provider follows Mantine's default and the screen renders light.
+   */
+  colorScheme?: 'light' | 'dark'
+}
+
+function TestProviders({ children, colorScheme }: PropsWithChildren<TestProviderOptions>) {
   // One client per mounted wrapper, not one per render. Building it in the
   // render body threw the cache away on every re-render, so a query that had
   // already resolved went back to `isPending` the moment anything else caused a
@@ -33,7 +41,7 @@ function TestProviders({ children }: PropsWithChildren) {
     // is mounted and then hidden by an asynchronous floating transition, so an
     // item can be in the DOM while an accessibility query still reports it as
     // absent — which is a timing accident, not a behaviour.
-    <MantineProvider env="test">
+    <MantineProvider env="test" forceColorScheme={colorScheme}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </MantineProvider>
   )
@@ -46,10 +54,15 @@ afterEach(() => {
   cleanup()
 })
 
-export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+export function renderWithProviders(
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'> & TestProviderOptions,
+) {
+  const { colorScheme, ...renderOptions } = options ?? {}
+
   return render(ui, {
-    wrapper: TestProviders,
-    ...options,
+    wrapper: ({ children }) => <TestProviders colorScheme={colorScheme}>{children}</TestProviders>,
+    ...renderOptions,
   })
 }
 
@@ -58,8 +71,15 @@ export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptio
  * router config belongs in `src/app/router.test.tsx`; this is for a single
  * screen whose links only need somewhere to point.
  */
-export function renderWithRouter(ui: ReactElement, initialEntries: string[] = ['/']) {
-  return renderWithProviders(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>)
+export function renderWithRouter(
+  ui: ReactElement,
+  initialEntries: string[] = ['/'],
+  options?: TestProviderOptions,
+) {
+  return renderWithProviders(
+    <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>,
+    options,
+  )
 }
 
 export * from '@testing-library/react'
