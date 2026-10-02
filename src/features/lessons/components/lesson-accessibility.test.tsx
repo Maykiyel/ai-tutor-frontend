@@ -84,4 +84,34 @@ describe('the reader, by keyboard and by ear', () => {
     expect(term).not.toHaveFocus()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('marks every link with an underline and every term with a dotted one, so neither is told from prose by colour alone', async () => {
+    vi.mocked(getLesson).mockResolvedValue(segmentsFixture)
+
+    renderReader()
+
+    await screen.findByRole('heading', { level: 1, name: 'Terms and citations' })
+
+    // A citation, two cross-references, and the source list's own link: every
+    // place a learner can be sent somewhere. Colour alone would leave a learner
+    // who cannot see it reading a link as an ordinary word.
+    for (const name of [
+      'the terms in order',
+      'the practice set',
+      'the notation cheat sheet',
+      'Terms in the order you meet them',
+    ]) {
+      const link = screen.getByRole('link', { name })
+      expect(link, name).toHaveStyle({ textDecorationLine: 'underline' })
+      expect(link, name).not.toHaveStyle({ textDecorationStyle: 'dotted' })
+    }
+
+    // A term opens a definition rather than going anywhere, and it is marked
+    // differently from a link so the learner can tell which is which before
+    // pressing either.
+    expect(screen.getByRole('button', { name: 'coefficient' })).toHaveStyle({
+      textDecorationLine: 'underline',
+      textDecorationStyle: 'dotted',
+    })
+  })
 })

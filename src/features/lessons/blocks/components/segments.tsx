@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 
 import { paths } from '@/config/paths'
 
+import { linkDecoration, termDecoration } from '../../lib/link-decoration'
 import { externalLinkAttributes, followableUrl } from '../../lib/source-url'
 import { useLesson } from '../lesson-context'
 import type { HydratedResource, HydratedTerm, Segment } from '../../schemas/lesson-schema'
@@ -127,6 +128,7 @@ function TermSegment({
             component="button"
             type="button"
             underline="always"
+            style={termDecoration}
             fw={500}
             aria-describedby={definitionId}
             onMouseEnter={() => {
@@ -198,7 +200,7 @@ function CiteSegment({
   }
 
   return (
-    <Anchor href={url} {...externalLinkAttributes}>
+    <Anchor href={url} underline="always" style={linkDecoration} {...externalLinkAttributes}>
       {segment.text}
     </Anchor>
   )
@@ -221,7 +223,7 @@ function LinkSegment({ segment }: { segment: Extract<Segment, { type: 'link' }> 
   }
 
   return (
-    <Anchor component={Link} to={href}>
+    <Anchor component={Link} to={href} underline="always" style={linkDecoration}>
       {segment.text}
     </Anchor>
   )
