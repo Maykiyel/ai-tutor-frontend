@@ -5,6 +5,7 @@ import {
   findLesson,
   findMission,
   findWorkspace,
+  gradeAttempt,
   listLessons,
   listWorkspaces,
   queueNextLesson,
@@ -28,7 +29,7 @@ import {
  * also means no CORS setup and no second port to remember. `configureServer` only
  * runs under `vite dev`, so the production build never sees any of this.
  *
- * It answers the seven endpoints the app actually calls, and serves the real test
+ * It answers every endpoint the app actually calls, and serves the real test
  * fixtures as the lesson payloads, so the app's own Zod schemas and its Laravel
  * `data`-envelope handling are exercised for real. What it deliberately does *not*
  * do is check the bearer token: the point is to walk the UI, and a mock that
@@ -37,9 +38,15 @@ import {
 
 const GENERATION_DELAY_MS = 7_000
 
+/** Long enough to see the submit button's pending state, short enough not to annoy. */
+const GRADING_DELAY_MS = 1_500
+
 type MockResponse = { status: number; body: unknown }
 
-type RouteHandler = (params: Record<string, string>, body: string) => MockResponse
+type RouteHandler = (
+  params: Record<string, string>,
+  body: string,
+) => MockResponse | Promise<MockResponse>
 
 type Route = {
   method: string
@@ -118,6 +125,18 @@ const routes: Route[] = [
       }
 
       return { status: 200, body: lesson }
+    },
+  },
+  {
+    method: 'POST',
+    pattern: '/api/lessons/:lessonId/attempts',
+    handle: (params, body) => {
+      const outcome = gradeAttempt(params.lessonId, body)
+      const response: MockResponse = outcome.ok
+        ? envelope(outcome.result)
+        : { status: outcome.status, body: { message: outcome.message } }
+
+      return new Promise((resolve) => setTimeout(() => resolve(response), GRADING_DELAY_MS))
     },
   },
 ]
@@ -226,7 +245,9 @@ function mockMiddleware(
     }
   })
 
-  return readBody(req).then((body) => send(res, route.handle(params, body)))
+  return readBody(req)
+    .then((body) => route.handle(params, body))
+    .then((response) => send(res, response))
 }
 
 export function mockApi(): Plugin {
