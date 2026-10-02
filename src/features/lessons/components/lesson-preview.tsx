@@ -1,5 +1,8 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { useId } from 'react'
+import { Link } from 'react-router'
+
+import { paths } from '@/config/paths'
 
 import { LessonProvider } from '../blocks/lesson-context'
 import { parseLessonBlocks } from '../blocks/parse-blocks'
@@ -21,19 +24,30 @@ export type InterviewLessonPayload = {
   lesson: unknown
   terms: unknown
   resources: unknown
+  /** The saved lesson's id, or null when the backend kept it as a preview only. */
+  lessonId?: string | null
 }
 
 /**
- * A generated lesson before it is saved: the same blocks the reader renders,
- * with the same tolerance for broken blocks, but no submission. A preview has
- * no lesson id, so `POST /api/lessons/{id}/attempts` has nowhere to go — the
- * action is present and disabled with the reason beside it, never missing and
- * never pretending to send.
+ * A generated lesson shown under the finished interview: the same blocks the
+ * reader renders, with the same tolerance for broken blocks, but no submission.
+ *
+ * When the backend saved the lesson, answers go through the reader, so the
+ * action here leads to it. When it did not, the lesson has no id and
+ * `POST /api/lessons/{id}/attempts` has nowhere to go: the action is present
+ * and disabled with the reason beside it, never missing and never pretending
+ * to send.
  *
  * Rendered model output stays untrusted here exactly as in the reader
  * (ADR-0001): blocks render through the registry, never as markup.
  */
-export function LessonPreview({ data }: { data: InterviewLessonPayload }) {
+export function LessonPreview({
+  data,
+  workspaceId,
+}: {
+  data: InterviewLessonPayload
+  workspaceId: string
+}) {
   const parsed = lessonResponseSchema.safeParse({
     lesson: data.lesson,
     terms: data.terms,
@@ -57,10 +71,20 @@ export function LessonPreview({ data }: { data: InterviewLessonPayload }) {
     )
   }
 
-  return <PreviewFrame lesson={parsed.data} />
+  const lessonHref = data.lessonId
+    ? paths.workspaces.lessonDetail.getHref(workspaceId, data.lessonId)
+    : null
+
+  return <PreviewFrame lesson={parsed.data} lessonHref={lessonHref} />
 }
 
-function PreviewFrame({ lesson }: { lesson: ParsedLessonResponse }) {
+function PreviewFrame({
+  lesson,
+  lessonHref,
+}: {
+  lesson: ParsedLessonResponse
+  lessonHref: string | null
+}) {
   const { blocks, skipped } = parseLessonBlocks(lesson.lesson.blocks)
   const isNewerThanApp = lesson.lesson.schemaVersion > SUPPORTED_SCHEMA_VERSION
 
@@ -77,17 +101,18 @@ function PreviewFrame({ lesson }: { lesson: ParsedLessonResponse }) {
 
         <LessonSourceList />
 
-        <PreviewSubmitNote />
+        <PreviewSubmitNote lessonHref={lessonHref} />
       </Stack>
     </LessonProvider>
   )
 }
 
 /**
- * Why the action is unavailable, in words, beside the action it explains —
- * the same unavailable-action-with-a-reason pattern as the mission confirm.
+ * Where answers go from here. A saved lesson links to the reader, which takes
+ * them. An unsaved one keeps the action disabled, with the reason in words
+ * beside it.
  */
-function PreviewSubmitNote() {
+function PreviewSubmitNote({ lessonHref }: { lessonHref: string | null }) {
   const reasonId = useId()
 
   return (
@@ -95,13 +120,20 @@ function PreviewSubmitNote() {
       <Title order={2}>Send your answers</Title>
 
       <Group align="flex-start" justify="space-between" wrap="nowrap" gap="md">
-        <Button disabled aria-describedby={reasonId}>
-          Send my answers
-        </Button>
+        {lessonHref ? (
+          <Button component={Link} to={lessonHref} aria-describedby={reasonId}>
+            Open the lesson
+          </Button>
+        ) : (
+          <Button disabled aria-describedby={reasonId}>
+            Send my answers
+          </Button>
+        )}
 
         <Text component="p" id={reasonId} size="sm" c="dimmed">
-          Answers cannot be sent from this preview. This lesson is not saved to the workspace yet,
-          so there is nowhere to send them.
+          {lessonHref
+            ? 'This lesson is saved to the workspace. Open it to answer the questions and send them.'
+            : 'Answers cannot be sent from this preview. This lesson is not saved to the workspace yet, so there is nowhere to send them.'}
         </Text>
       </Group>
     </Stack>

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderWithProviders, screen } from '@/test/test-utils'
+import { renderWithRouter, screen } from '@/test/test-utils'
 
 import { LessonPreview, type InterviewLessonPayload } from './lesson-preview'
 
-/** A small but complete lesson in the contract shape `POST /api/test-teach` sends. */
+/** A small but complete lesson in the contract shape `POST /api/test-teach` sends, not saved. */
 function previewPayload(): InterviewLessonPayload {
   return {
     lesson: {
@@ -43,7 +43,7 @@ function previewPayload(): InterviewLessonPayload {
 
 describe('LessonPreview', () => {
   it('renders the lesson blocks the tutor generated', () => {
-    renderWithProviders(<LessonPreview data={previewPayload()} />)
+    renderWithRouter(<LessonPreview data={previewPayload()} workspaceId="7" />)
 
     expect(screen.getByRole('heading', { name: 'One operation, both sides' })).toBeInTheDocument()
     expect(screen.getByText(/a claim that two things are equal/i)).toBeInTheDocument()
@@ -51,14 +51,14 @@ describe('LessonPreview', () => {
   })
 
   it('names a block it cannot show instead of rendering a short lesson', () => {
-    renderWithProviders(<LessonPreview data={previewPayload()} />)
+    renderWithRouter(<LessonPreview data={previewPayload()} workspaceId="7" />)
 
     expect(screen.getByText(/part of this lesson is missing/i)).toBeInTheDocument()
     expect(screen.getByText(/a table, in a shape this app cannot read/i)).toBeInTheDocument()
   })
 
   it('offers no submission, with the reason beside the action', () => {
-    renderWithProviders(<LessonPreview data={previewPayload()} />)
+    renderWithRouter(<LessonPreview data={previewPayload()} workspaceId="7" />)
 
     const send = screen.getByRole('button', { name: 'Send my answers' })
 
@@ -66,10 +66,23 @@ describe('LessonPreview', () => {
     expect(send).toHaveAccessibleDescription(/not saved to the workspace yet/i)
   })
 
+  it('leads to the reader when the backend saved the lesson', () => {
+    renderWithRouter(
+      <LessonPreview data={{ ...previewPayload(), lessonId: '31' }} workspaceId="7" />,
+    )
+
+    const open = screen.getByRole('link', { name: 'Open the lesson' })
+
+    expect(open).toHaveAttribute('href', '/workspaces/7/lessons/31')
+    expect(open).toHaveAccessibleDescription(/saved to the workspace/i)
+    expect(screen.queryByRole('button', { name: 'Send my answers' })).not.toBeInTheDocument()
+  })
+
   it('says so when the generated lesson cannot be read at all', () => {
-    renderWithProviders(
+    renderWithRouter(
       <LessonPreview
         data={{ lesson: { title: 'Two-step equations' }, terms: {}, resources: {} }}
+        workspaceId="7"
       />,
     )
 

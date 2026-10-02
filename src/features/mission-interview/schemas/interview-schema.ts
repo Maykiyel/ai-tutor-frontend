@@ -75,6 +75,18 @@ const nullablePayload = z
   .optional()
   .transform((value) => (value == null ? null : value))
 
+/**
+ * The id of a row the backend saved on this turn, or null when it saved
+ * nothing. Ids are bigints, so Laravel may send a number or a string.
+ */
+const savedIdSchema = z
+  .union([z.string().min(1), z.number()])
+  .transform(String)
+  .nullable()
+  .optional()
+  .catch(null)
+  .transform((id) => id ?? null)
+
 const missionDraftSchema = z.object({
   topic: z.string().nullable().catch(null),
   why: z.string().trim().min(1).nullable().catch(null),
@@ -94,6 +106,8 @@ const turnSchema = z
       .nullable()
       .catch(null),
     parse_error: z.string().nullable().catch(null),
+    mission_id: savedIdSchema,
+    lesson_id: savedIdSchema,
     lesson: nullablePayload,
     terms: nullablePayload,
     resources: nullablePayload,
@@ -116,8 +130,7 @@ const turnSchema = z
       // The practice route moves straight on to teaching once the mission is
       // captured, so its `lesson` phase is this screen's "the interview is
       // over". The lesson it carries is not read here — it rides along raw
-      // for the lesson preview the route composes in, because lessons are
-      // asked for once the mission is saved, not here. Any phase this screen
+      // for the lesson preview the route composes in. Any phase this screen
       // does not know keeps the interview going, which is the safe way to be
       // wrong.
       status: turn.phase === 'lesson' ? ('complete' as const) : ('interviewing' as const),
@@ -134,10 +147,19 @@ const turnSchema = z
       // reply that is raw JSON the parser rejected instead of printing it;
       // prose still reads as before.
       parseError: turn.parse_error,
+      // On a lesson turn the backend saves the mission as the workspace's
+      // active one, and the lesson too when it passes its checks. A null id
+      // means that row was not saved: the draft or the preview is all there is.
+      missionId: turn.mission_id,
       lessonData:
         turn.lesson == null
           ? null
-          : { lesson: turn.lesson, terms: turn.terms, resources: turn.resources },
+          : {
+              lesson: turn.lesson,
+              terms: turn.terms,
+              resources: turn.resources,
+              lessonId: turn.lesson_id,
+            },
     }
   })
 

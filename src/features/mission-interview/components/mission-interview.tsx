@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/ui/error-state'
 import { LoadingState } from '@/components/ui/loading-state'
 import type { QuestionnaireAnswers } from '@/components/ui/questionnaire/questionnaire'
 import { paths } from '@/config/paths'
-import { missionQueries } from '@/lib/mission/mission-queries'
+import { missionKeys, missionQueries } from '@/lib/mission/mission-queries'
 
 import { describeAnswers, toPrompt, type AnsweredQuestion } from '../lib/answers-to-prompt'
 import {
@@ -109,6 +109,11 @@ type MissionInterviewProps = {
    * route composes the lessons feature's preview in here.
    */
   renderLessonPreview?: (data: NonNullable<InterviewTurn['lessonData']>) => ReactNode
+  /**
+   * Called when a turn saved a lesson to the workspace. The lesson list belongs
+   * to the lessons feature, so the route refreshes it.
+   */
+  onLessonSaved?: () => void
 }
 
 /**
@@ -118,13 +123,21 @@ type MissionInterviewProps = {
  *
  * A workspace that already has an active mission does not run the interview:
  * changing a mission is a separate, confirmed revision, and it is not built.
+ * The exception is a mission this interview just saved. The screen keeps
+ * showing the finished interview and its lesson rather than switching to the
+ * "already has a mission" message the moment the mission refetches.
  */
 export function MissionInterview({
   workspaceId,
   topic,
   renderLessonPreview,
+  onLessonSaved,
 }: MissionInterviewProps) {
   const mission = useQuery(missionQueries.mission(workspaceId))
+  const { data: transcript } = useQuery(interviewQueries.transcript(workspaceId))
+  const savedHere = transcript.entries.some(
+    (entry) => entry.role === 'tutor' && entry.turn.missionId !== null,
+  )
 
   if (mission.isPending) {
     return <LoadingState message="Checking this workspace's mission..." />
@@ -149,7 +162,7 @@ export function MissionInterview({
         </Text>
       </div>
 
-      {mission.data?.is_active ? (
+      {mission.data?.is_active && !savedHere ? (
         <Stack gap="xs" align="flex-start">
           <Text>This workspace already has an active mission.</Text>
           <Text size="sm" c="dimmed">
@@ -164,13 +177,19 @@ export function MissionInterview({
           workspaceId={workspaceId}
           topic={topic}
           renderLessonPreview={renderLessonPreview}
+          onLessonSaved={onLessonSaved}
         />
       )}
     </Stack>
   )
 }
 
-function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterviewProps) {
+function Conversation({
+  workspaceId,
+  topic,
+  renderLessonPreview,
+  onLessonSaved,
+}: MissionInterviewProps) {
   const queryClient = useQueryClient()
   const transcriptKey = interviewKeys.transcript(workspaceId)
   const { data: transcript } = useQuery(interviewQueries.transcript(workspaceId))
@@ -186,6 +205,14 @@ function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterv
           { role: 'tutor', turn },
         ],
       }))
+
+      if (turn.missionId !== null) {
+        void queryClient.invalidateQueries({ queryKey: missionKeys.mission(workspaceId) })
+      }
+
+      if (turn.lessonData?.lessonId) {
+        onLessonSaved?.()
+      }
     },
   })
 
@@ -216,6 +243,7 @@ function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterv
       // The tutor has no workspace to read the topic from, so the opening
       // message carries it.
       prompt: opening ? `I want to learn ${topic}.\n\n${toPrompt(answered)}` : toPrompt(answered),
+      workspaceId,
       conversationId: transcript.conversationId,
       answers: answered,
     }
@@ -252,7 +280,11 @@ function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterv
                 return (
                   <Box key={index} ref={isLatest ? latestRef : undefined} tabIndex={-1}>
                     <Text fw={600}>The tutor has what it needs.</Text>
-                    <Text c="dimmed">Check the mission it drafted from your answers.</Text>
+                    <Text c="dimmed">
+                      {entry.turn.missionId !== null
+                        ? 'It saved this mission to the workspace from your answers.'
+                        : 'Check the mission it drafted from your answers.'}
+                    </Text>
                   </Box>
                 )
               }
@@ -269,7 +301,12 @@ function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterv
 
       {complete ? (
         <Stack gap="lg">
-          <MissionDraftCard draft={latestTurn.missionDraft} onStartOver={startOver} />
+          <MissionDraftCard
+            draft={latestTurn.missionDraft}
+            saved={latestTurn.missionId !== null}
+            workspaceId={workspaceId}
+            onStartOver={startOver}
+          />
           {latestTurn.lessonData && renderLessonPreview
             ? renderLessonPreview(latestTurn.lessonData)
             : null}

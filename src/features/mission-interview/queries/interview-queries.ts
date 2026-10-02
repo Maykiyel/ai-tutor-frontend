@@ -45,6 +45,7 @@ export const interviewQueries = {
 
 export type SendInterviewMessageVariables = {
   prompt: string
+  workspaceId: string
   conversationId: string | null
   /** What the transcript shows for the learner's side once the tutor has replied. */
   answers: AnsweredQuestion[]
@@ -53,7 +54,7 @@ export type SendInterviewMessageVariables = {
 export const interviewMutations = {
   send: () =>
     mutationOptions({
-      mutationFn: ({ prompt, conversationId }: SendInterviewMessageVariables) =>
-        sendInterviewMessage({ prompt, conversationId }),
+      mutationFn: ({ prompt, workspaceId, conversationId }: SendInterviewMessageVariables) =>
+        sendInterviewMessage({ prompt, workspaceId, conversationId }),
     }),
 }

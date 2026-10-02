@@ -13,6 +13,7 @@ import {
   openingTurnResponse,
   rawJsonTurnResponse,
   unparsedTurnResponse,
+  unsavedCompleteTurnResponse,
 } from '../fixtures/interview-fixtures'
 import { interviewTurnResponseSchema } from '../schemas/interview-schema'
 import { MissionInterview } from './mission-interview'
@@ -25,6 +26,7 @@ const completeTurn = interviewTurnResponseSchema.parse(completeTurnResponse)
 const completeTurnWithLesson = interviewTurnResponseSchema.parse(completeTurnWithLessonResponse)
 const unparsedTurn = interviewTurnResponseSchema.parse(unparsedTurnResponse)
 const rawJsonTurn = interviewTurnResponseSchema.parse(rawJsonTurnResponse)
+const unsavedCompleteTurn = interviewTurnResponseSchema.parse(unsavedCompleteTurnResponse)
 
 function renderInterview(props?: Partial<Parameters<typeof MissionInterview>[0]>) {
   return renderWithRouter(<MissionInterview workspaceId="7" topic="Algebra" {...props} />)
@@ -71,6 +73,7 @@ describe('MissionInterview', () => {
     expect(sendInterviewMessage).toHaveBeenCalledWith({
       prompt:
         'I want to learn Algebra.\n\nWhy do you want to learn Algebra?\nPass the placement test.',
+      workspaceId: '7',
       conversationId: null,
     })
 
@@ -105,6 +108,7 @@ describe('MissionInterview', () => {
         'When is the placement test?\nThis term\n\n' +
         'Which parts feel shakiest?\nSkipped.\n\n' +
         'How much time can you give it each week?\nTwo hours',
+      workspaceId: '7',
       conversationId: 'conv-1',
     })
 
@@ -113,7 +117,7 @@ describe('MissionInterview', () => {
     expect(screen.getByRole('group', { name: 'Your reply' })).toBeInTheDocument()
   })
 
-  it('ends on the drafted mission, with a confirm step that says why it cannot be taken yet', async () => {
+  it('ends on the mission the backend saved, leading back to the workspace', async () => {
     const user = userEvent.setup()
 
     vi.mocked(sendInterviewMessage).mockResolvedValue(completeTurn)
@@ -122,18 +126,60 @@ describe('MissionInterview', () => {
     await answerOpening(user)
 
     expect(await screen.findByRole('heading', { name: 'Your mission' })).toBeInTheDocument()
+    expect(screen.getByText('Saved')).toBeInTheDocument()
+    expect(screen.getByText(/saved this mission to the workspace/i)).toBeInTheDocument()
     expect(screen.getByText(/help my brother with his homework/i)).toBeInTheDocument()
     expect(screen.getByText('Score 80% or better')).toBeInTheDocument()
     expect(screen.getByText('Two hours a week, weekdays only')).toBeInTheDocument()
     expect(screen.getByText('Geometry')).toBeInTheDocument()
-
-    const confirm = screen.getByRole('button', { name: 'Confirm this mission' })
-
-    expect(confirm).toBeDisabled()
-    expect(confirm).toHaveAccessibleDescription(/not built yet/i)
+    expect(screen.getByRole('link', { name: 'Go to the workspace' })).toHaveAttribute(
+      'href',
+      '/workspaces/7/home',
+    )
+    expect(screen.queryByRole('button', { name: 'Start over' })).not.toBeInTheDocument()
     // Without a preview composed in, only the handoff words show.
     expect(screen.queryByText(/this first lesson covers/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /send answers/i })).not.toBeInTheDocument()
+  })
+
+  it('ends on an unsaved draft that can only be started over', async () => {
+    const user = userEvent.setup()
+
+    vi.mocked(sendInterviewMessage).mockResolvedValue(unsavedCompleteTurn)
+
+    renderInterview()
+    await answerOpening(user)
+
+    expect(await screen.findByText('Draft')).toBeInTheDocument()
+    expect(screen.getByText(/not saved to the workspace/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Go to the workspace' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start over' })).toBeInTheDocument()
+  })
+
+  it('keeps the finished interview on screen once the saved mission reads back as active', async () => {
+    const user = userEvent.setup()
+
+    vi.mocked(sendInterviewMessage).mockResolvedValue(completeTurnWithLesson)
+    vi.mocked(getMission)
+      .mockResolvedValueOnce(missionResponseSchema.parse(noMissionResponse))
+      .mockResolvedValue(missionResponseSchema.parse(missionResponse))
+    const onLessonSaved = vi.fn()
+
+    renderInterview({
+      onLessonSaved,
+      renderLessonPreview: (data) => <div data-testid="lesson-preview">{data.lessonId}</div>,
+    })
+    await answerOpening(user)
+
+    expect(await screen.findByTestId('lesson-preview')).toHaveTextContent('31')
+    expect(onLessonSaved).toHaveBeenCalledOnce()
+
+    // The saved mission is refetched and now reads as active.
+    await vi.waitFor(() => expect(getMission).toHaveBeenCalledTimes(2))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(screen.queryByText(/already has an active mission/i)).not.toBeInTheDocument()
+    expect(screen.getByTestId('lesson-preview')).toBeInTheDocument()
   })
 
   it('shows the generated lesson under the mission when the route composes a preview in', async () => {
@@ -176,6 +222,7 @@ describe('MissionInterview', () => {
 
     expect(sendInterviewMessage).toHaveBeenLastCalledWith({
       prompt: 'Your reply\nTrying again.',
+      workspaceId: '7',
       conversationId: 'conv-1',
     })
     expect(await screen.findByText(/a good, concrete reason/i)).toBeInTheDocument()
@@ -184,7 +231,7 @@ describe('MissionInterview', () => {
   it('starts over from the opening question', async () => {
     const user = userEvent.setup()
 
-    vi.mocked(sendInterviewMessage).mockResolvedValue(completeTurn)
+    vi.mocked(sendInterviewMessage).mockResolvedValue(unsavedCompleteTurn)
 
     renderInterview()
     await answerOpening(user)

@@ -2,7 +2,10 @@
  * Wire-shaped responses from `POST /api/test-teach`, exactly as the practice
  * route sends them: inside the Laravel `data` envelope, with the fields the
  * screen does not read (`structured.lesson`, `terms`, `resources`, `text`,
- * `validation_warnings`) left in so they are proven harmless.
+ * `validation_warnings`, `workspace_id`) left in so they are proven harmless.
+ *
+ * A lesson turn saves the mission and, when it passes the backend's checks,
+ * the lesson; `mission_id` and `lesson_id` name the saved rows or are null.
  */
 
 export const openingTurnResponse = {
@@ -60,9 +63,13 @@ export const openingTurnResponse = {
     text: '{"message": "..."}',
     parse_error: null,
     validation_warnings: [],
+    workspace_id: null,
+    mission_id: null,
+    lesson_id: null,
   },
 }
 
+/** The mission was saved; the lesson was too thin to pass, so it stayed a preview. */
 export const completeTurnResponse = {
   message: 'Teach turn completed.',
   data: {
@@ -87,7 +94,23 @@ export const completeTurnResponse = {
     resources: { '1': { title: 'Source', url: 'https://example.com' } },
     text: '{"message": "..."}',
     parse_error: null,
-    validation_warnings: [],
+    validation_warnings: ['Lesson is missing required key: blocks.'],
+    workspace_id: 7,
+    mission_id: 12,
+    lesson_id: null,
+  },
+}
+
+/** A lesson turn whose draft had no reason to learn, so the backend saved no mission. */
+export const unsavedCompleteTurnResponse = {
+  message: 'Teach turn completed.',
+  data: {
+    ...completeTurnResponse.data,
+    structured: {
+      ...completeTurnResponse.data.structured,
+      mission_draft: { ...completeTurnResponse.data.structured.mission_draft, why: null },
+    },
+    mission_id: null,
   },
 }
 
@@ -134,9 +157,9 @@ export const rawJsonTurnResponse = {
 }
 
 /**
- * A completed turn carrying a full lesson in the frontend's contract shape, as
- * `POST /api/test-teach` synthesizes it: header, blocks, hydrated resources,
- * and no recall secrets.
+ * A completed turn carrying a full lesson the backend saved, in the frontend's
+ * contract shape: header, blocks, hydrated resources keyed by the real source
+ * id, and no recall secrets.
  */
 export const completeTurnWithLessonResponse = {
   message: 'Teach turn completed.',
@@ -167,7 +190,7 @@ export const completeTurnWithLessonResponse = {
       missionLink: 'Almost every problem in the practice set needs this one move.',
       minutes: 8,
       primarySource: {
-        resourceId: 1,
+        resourceId: 4,
         why: 'It works one equation at a time, which is the pace you read at.',
       },
       blocks: [
@@ -205,10 +228,13 @@ export const completeTurnWithLessonResponse = {
     },
     terms: {},
     resources: {
-      '1': { title: 'Two-step equations, worked slowly', url: 'https://example.org/two-step' },
+      '4': { title: 'Two-step equations, worked slowly', url: 'https://example.org/two-step' },
     },
     text: '{"message": "..."}',
     parse_error: null,
     validation_warnings: [],
+    workspace_id: 7,
+    mission_id: 12,
+    lesson_id: 31,
   },
 }

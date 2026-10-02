@@ -34,6 +34,16 @@ describe('interview turn schema', () => {
       outOfScope: ['Geometry'],
     })
     expect(turn.parseError).toBeNull()
+    expect(turn.missionId).toBe('12')
+    expect(turn.lessonData?.lessonId).toBeNull()
+  })
+
+  it('reads a turn from before the backend saved anything as nothing saved', () => {
+    const { mission_id: _mission, lesson_id: _lesson, ...older } = completeTurnResponse.data
+    const turn = interviewTurnResponseSchema.parse({ data: older })
+
+    expect(turn.missionId).toBeNull()
+    expect(turn.lessonData?.lessonId).toBeNull()
   })
 
   it('carries a full lesson turn through unparsed for the preview', () => {
@@ -42,7 +52,8 @@ describe('interview turn schema', () => {
     expect(turn.status).toBe('complete')
     expect(turn.lessonData).toMatchObject({
       terms: {},
-      resources: { '1': { title: 'Two-step equations, worked slowly' } },
+      resources: { '4': { title: 'Two-step equations, worked slowly' } },
+      lessonId: '31',
     })
     expect((turn.lessonData?.lesson as { title?: unknown })?.title).toBe('Two-step equations')
   })
