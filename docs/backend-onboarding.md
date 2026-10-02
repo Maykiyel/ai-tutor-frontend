@@ -223,6 +223,7 @@ These are the rules the renderer relies on. If one of them stops holding, say so
 All paths carry the `/api` prefix.
 
 ```
+GET    /api/workspaces                       the learner's own workspaces
 POST   /api/workspaces
 GET    /api/workspaces/{id}
 PATCH  /api/workspaces/{id}                  teaching notes, community opt-out

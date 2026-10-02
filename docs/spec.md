@@ -270,6 +270,7 @@ mirrors it as features under `src/features/`.
 ## API contracts
 
 ```
+GET    /api/workspaces                       the learner's own workspaces
 POST   /api/workspaces
 GET    /api/workspaces/{id}
 PATCH  /api/workspaces/{id}                  teaching notes, community opt-out
