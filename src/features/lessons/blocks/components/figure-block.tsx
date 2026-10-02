@@ -1,10 +1,11 @@
 import { useEffect, useId, useState } from 'react'
-import { Box, Image, Paper, ScrollArea, Stack, Text, useComputedColorScheme } from '@mantine/core'
+import { Box, Image, Paper, Stack, Text, useComputedColorScheme } from '@mantine/core'
 
 import { followableUrl } from '../../lib/source-url'
 import type { FigureBlock } from '../../schemas/lesson-schema'
 import { diagramElementId, drawDiagram } from '../mermaid'
 import { sanitiseLessonSvg } from '../sanitise-svg'
+import { SidewaysScroll } from './sideways-scroll'
 
 /**
  * A figure is a thing rather than a sentence, and every figure carries two things
@@ -21,11 +22,11 @@ import { sanitiseLessonSvg } from '../sanitise-svg'
 export function FigureBlockView({ block }: { block: FigureBlock }) {
   return (
     <Stack gap={4}>
-      <ScrollArea type="auto" scrollbars="x" offsetScrollbars scrollbarSize={12}>
+      <SidewaysScroll label={`Figure: ${block.alt}`}>
         <Box w="fit-content" maw="100%">
           <FigureMedia block={block} />
         </Box>
-      </ScrollArea>
+      </SidewaysScroll>
 
       {block.caption ? (
         <Text component="p" size="sm" c="dimmed">

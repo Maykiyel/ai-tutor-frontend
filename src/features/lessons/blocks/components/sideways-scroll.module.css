@@ -1,0 +1,11 @@
+/*
+ * The focus ring for a scroll viewport that takes keyboard focus.
+ *
+ * Drawn inside the box rather than around it, because the scroll area's root clips
+ * its overflow and an outline outside the viewport would be clipped with it. The
+ * colour is the same theme token every other focus ring in the app uses.
+ */
+.viewport:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}

@@ -7,7 +7,11 @@ import { paths } from '@/config/paths'
 import { renderWithRouter, screen, waitFor } from '@/test/test-utils'
 
 import { getLesson, submitAttempt } from '../api/lesson-api'
-import { segmentsFixture } from '../fixtures/lesson-fixtures'
+import {
+  handsOnFixture,
+  segmentsFixture,
+  tableComparisonFixture,
+} from '../fixtures/lesson-fixtures'
 import { LessonReader } from './lesson-reader'
 
 // The seam: the feature's own API module, stubbed with a fixture response.
@@ -114,4 +118,36 @@ describe('the reader, by keyboard and by ear', () => {
       textDecorationStyle: 'dotted',
     })
   })
+
+  it.each([
+    ['a long code sample', handsOnFixture, 'Setting up the practice set', 'Code sample, python'],
+    [
+      'a figure wider than the column',
+      handsOnFixture,
+      'Setting up the practice set',
+      'Figure: Four problem cards laid out side by side, one card per problem on the sheet.',
+    ],
+    [
+      'a table wider than the column',
+      tableComparisonFixture,
+      'Four ways to undo a step',
+      'Table: Method, What it does, When it stops working, How you notice',
+    ],
+  ])(
+    'lets a keyboard learner reach %s that scrolls sideways, and says what it is',
+    async (_name, fixture, heading, region) => {
+      const learner = userEvent.setup()
+      vi.mocked(getLesson).mockResolvedValue(fixture)
+
+      renderReader()
+
+      await screen.findByRole('heading', { level: 1, name: heading })
+
+      // A box that scrolls sideways and cannot take focus is a box whose far edge
+      // a keyboard learner never sees: the arrow keys scroll whatever has focus,
+      // and nothing in a code sample or a figure takes it. So the scrolling box is
+      // itself a tab stop, named for what it holds.
+      await tabTo(learner, screen.getByRole('group', { name: region }))
+    },
+  )
 })
