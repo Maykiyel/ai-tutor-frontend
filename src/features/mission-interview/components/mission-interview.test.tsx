@@ -9,7 +9,9 @@ import { renderWithRouter, screen, within } from '@/test/test-utils'
 import { sendInterviewMessage } from '../api/interview-api'
 import {
   completeTurnResponse,
+  completeTurnWithLessonResponse,
   openingTurnResponse,
+  rawJsonTurnResponse,
   unparsedTurnResponse,
 } from '../fixtures/interview-fixtures'
 import { interviewTurnResponseSchema } from '../schemas/interview-schema'
@@ -20,10 +22,12 @@ vi.mock('@/lib/mission/mission-api')
 
 const openingTurn = interviewTurnResponseSchema.parse(openingTurnResponse)
 const completeTurn = interviewTurnResponseSchema.parse(completeTurnResponse)
+const completeTurnWithLesson = interviewTurnResponseSchema.parse(completeTurnWithLessonResponse)
 const unparsedTurn = interviewTurnResponseSchema.parse(unparsedTurnResponse)
+const rawJsonTurn = interviewTurnResponseSchema.parse(rawJsonTurnResponse)
 
-function renderInterview() {
-  return renderWithRouter(<MissionInterview workspaceId="7" topic="Algebra" />)
+function renderInterview(props?: Partial<Parameters<typeof MissionInterview>[0]>) {
+  return renderWithRouter(<MissionInterview workspaceId="7" topic="Algebra" {...props} />)
 }
 
 async function answerOpening(user: ReturnType<typeof userEvent.setup>) {
@@ -127,9 +131,54 @@ describe('MissionInterview', () => {
 
     expect(confirm).toBeDisabled()
     expect(confirm).toHaveAccessibleDescription(/not built yet/i)
-    // The reply introduces a lesson, which is not this screen's to show.
+    // Without a preview composed in, only the handoff words show.
     expect(screen.queryByText(/this first lesson covers/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /send answers/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the generated lesson under the mission when the route composes a preview in', async () => {
+    const user = userEvent.setup()
+
+    vi.mocked(sendInterviewMessage).mockResolvedValue(completeTurnWithLesson)
+
+    // A stand-in for the lessons feature's preview: the interview owns the
+    // slot, not the lesson UI.
+    renderInterview({
+      renderLessonPreview: (data) => (
+        <div data-testid="lesson-preview">{(data.lesson as { title?: string }).title}</div>
+      ),
+    })
+    await answerOpening(user)
+
+    expect(await screen.findByRole('heading', { name: 'Your mission' })).toBeInTheDocument()
+    expect(screen.getByTestId('lesson-preview')).toHaveTextContent('Two-step equations')
+  })
+
+  it('never prints a reply the backend could not parse, and the learner can answer again', async () => {
+    const user = userEvent.setup()
+
+    vi.mocked(sendInterviewMessage)
+      .mockResolvedValueOnce(rawJsonTurn)
+      .mockResolvedValueOnce(openingTurn)
+
+    renderInterview()
+    await answerOpening(user)
+
+    expect(await screen.findByText(/could not be read/i)).toBeInTheDocument()
+    expect(screen.queryByText(/"phase": "interviewing"/i)).not.toBeInTheDocument()
+
+    // The interview continues: the learner's answers are above and the reply
+    // question stands in below.
+    expect(screen.getByRole('group', { name: 'Your reply' })).toBeInTheDocument()
+
+    await user.type(screen.getByRole('textbox', { name: 'Your answer' }), 'Trying again.')
+    await user.click(screen.getByRole('button', { name: 'Send answers' }))
+
+    expect(sendInterviewMessage).toHaveBeenLastCalledWith({
+      prompt: 'Your reply\nTrying again.',
+      conversationId: 'conv-1',
+    })
+    expect(await screen.findByText(/a good, concrete reason/i)).toBeInTheDocument()
   })
 
   it('starts over from the opening question', async () => {

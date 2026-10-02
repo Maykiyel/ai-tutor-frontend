@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Card, Paper, Stack, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import { ErrorState } from '@/components/ui/error-state'
@@ -66,6 +66,27 @@ function LearnerAnswers({ answers }: { answers: AnsweredQuestion[] }) {
 }
 
 function TutorMessage({ turn }: { turn: InterviewTurn }) {
+  // A turn the backend could not parse falls into two kinds. Prose is still a
+  // question the learner can answer, so it reads as before. A reply that is
+  // raw JSON the parser rejected — the observed failure was valid JSON with
+  // one extra trailing `}` — is not something to read, so it reads as a
+  // failed reply instead, with the interview continuing below. The learner's
+  // answers stay in the transcript above, so resending them is a matter of
+  // answering again.
+  if (turn.parseError && turn.message.trimStart().startsWith('{')) {
+    return (
+      <Alert
+        color="red"
+        role="alert"
+        variant="light"
+        radius="md"
+        title="The tutor's reply could not be read"
+      >
+        <Text size="sm">Nothing is lost — your answers are above. Send them again below.</Text>
+      </Alert>
+    )
+  }
+
   return (
     <Box>
       <Text size="xs" fw={600} c="dimmed" mb={4}>
@@ -82,6 +103,12 @@ function TutorMessage({ turn }: { turn: InterviewTurn }) {
 type MissionInterviewProps = {
   workspaceId: string
   topic: string
+  /**
+   * What a finished interview shows under the mission draft. The interview
+   * owns no lesson UI — features do not import from one another — so the
+   * route composes the lessons feature's preview in here.
+   */
+  renderLessonPreview?: (data: NonNullable<InterviewTurn['lessonData']>) => ReactNode
 }
 
 /**
@@ -92,7 +119,11 @@ type MissionInterviewProps = {
  * A workspace that already has an active mission does not run the interview:
  * changing a mission is a separate, confirmed revision, and it is not built.
  */
-export function MissionInterview({ workspaceId, topic }: MissionInterviewProps) {
+export function MissionInterview({
+  workspaceId,
+  topic,
+  renderLessonPreview,
+}: MissionInterviewProps) {
   const mission = useQuery(missionQueries.mission(workspaceId))
 
   if (mission.isPending) {
@@ -129,13 +160,17 @@ export function MissionInterview({ workspaceId, topic }: MissionInterviewProps) 
           </Button>
         </Stack>
       ) : (
-        <Conversation workspaceId={workspaceId} topic={topic} />
+        <Conversation
+          workspaceId={workspaceId}
+          topic={topic}
+          renderLessonPreview={renderLessonPreview}
+        />
       )}
     </Stack>
   )
 }
 
-function Conversation({ workspaceId, topic }: MissionInterviewProps) {
+function Conversation({ workspaceId, topic, renderLessonPreview }: MissionInterviewProps) {
   const queryClient = useQueryClient()
   const transcriptKey = interviewKeys.transcript(workspaceId)
   const { data: transcript } = useQuery(interviewQueries.transcript(workspaceId))
@@ -211,8 +246,8 @@ function Conversation({ workspaceId, topic }: MissionInterviewProps) {
                 return <LearnerAnswers key={index} answers={entry.answers} />
               }
 
-              // The reply that ends the interview introduces a lesson this screen
-              // does not show, so it is replaced with words about the mission.
+              // The reply that ends the interview is replaced with words about
+              // the mission: the lesson preview below shows what was taught.
               if (entry.turn.status === 'complete') {
                 return (
                   <Box key={index} ref={isLatest ? latestRef : undefined} tabIndex={-1}>
@@ -233,7 +268,12 @@ function Conversation({ workspaceId, topic }: MissionInterviewProps) {
       ) : null}
 
       {complete ? (
-        <MissionDraftCard draft={latestTurn.missionDraft} onStartOver={startOver} />
+        <Stack gap="lg">
+          <MissionDraftCard draft={latestTurn.missionDraft} onStartOver={startOver} />
+          {latestTurn.lessonData && renderLessonPreview
+            ? renderLessonPreview(latestTurn.lessonData)
+            : null}
+        </Stack>
       ) : (
         <Card withBorder radius="md" padding="lg">
           <Stack gap="md">

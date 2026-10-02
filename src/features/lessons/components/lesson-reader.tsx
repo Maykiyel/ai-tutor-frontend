@@ -89,7 +89,7 @@ function LessonFrame({ lesson, lessonId }: { lesson: ParsedLessonResponse; lesso
  * whatever parsed; hard-refusing would hide a lesson they are entitled to read
  * and turn a rendering gap into a dead end. See ADR-0002.
  */
-function NewerVersionNotice({ version }: { version: number }) {
+export function NewerVersionNotice({ version }: { version: number }) {
   return (
     <Alert
       role="status"
@@ -117,7 +117,7 @@ function NewerVersionNotice({ version }: { version: number }) {
  * heading and a missing quiz are not the same loss, and only the second changes
  * what the learner can send at the end.
  */
-function SkippedBlocksNotice({ skipped }: { skipped: SkippedBlock[] }) {
+export function SkippedBlocksNotice({ skipped }: { skipped: SkippedBlock[] }) {
   const count = skipped.length
 
   return (
@@ -144,7 +144,7 @@ function SkippedBlocksNotice({ skipped }: { skipped: SkippedBlock[] }) {
   )
 }
 
-function LessonBlocks({ blocks }: { blocks: ParsedLessonBlock[] }) {
+export function LessonBlocks({ blocks }: { blocks: ParsedLessonBlock[] }) {
   return (
     <Box component="section">
       <Stack gap="lg">

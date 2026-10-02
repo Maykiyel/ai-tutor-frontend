@@ -64,6 +64,17 @@ const questionSchema = z
 
 const textListSchema = lenientArray(z.string().trim().min(1))
 
+/**
+ * The lesson payload rides along unvalidated: it belongs to the lesson
+ * contract (`docs/lesson-schema.json`), and this feature must not import the
+ * lessons feature to validate it. A missing key reads as absent; whatever
+ * arrives is handed to the lesson preview the route composes in.
+ */
+const nullablePayload = z
+  .unknown()
+  .optional()
+  .transform((value) => (value == null ? null : value))
+
 const missionDraftSchema = z.object({
   topic: z.string().nullable().catch(null),
   why: z.string().trim().min(1).nullable().catch(null),
@@ -82,6 +93,10 @@ const turnSchema = z
       .object({ mission_draft: missionDraftSchema.nullable().catch(null) })
       .nullable()
       .catch(null),
+    parse_error: z.string().nullable().catch(null),
+    lesson: nullablePayload,
+    terms: nullablePayload,
+    resources: nullablePayload,
   })
   .transform((turn) => {
     const ids = new Set<string>()
@@ -100,9 +115,11 @@ const turnSchema = z
       message: turn.reply,
       // The practice route moves straight on to teaching once the mission is
       // captured, so its `lesson` phase is this screen's "the interview is
-      // over". The lesson it carries is not read: lessons are asked for once the
-      // mission is saved, not here. Any phase this screen does not know keeps
-      // the interview going, which is the safe way to be wrong.
+      // over". The lesson it carries is not read here — it rides along raw
+      // for the lesson preview the route composes in, because lessons are
+      // asked for once the mission is saved, not here. Any phase this screen
+      // does not know keeps the interview going, which is the safe way to be
+      // wrong.
       status: turn.phase === 'lesson' ? ('complete' as const) : ('interviewing' as const),
       questions,
       missionDraft: draft
@@ -113,6 +130,14 @@ const turnSchema = z
             outOfScope: draft.out_of_scope,
           }
         : null,
+      // Whether the backend could not parse the turn. The screen hides a
+      // reply that is raw JSON the parser rejected instead of printing it;
+      // prose still reads as before.
+      parseError: turn.parse_error,
+      lessonData:
+        turn.lesson == null
+          ? null
+          : { lesson: turn.lesson, terms: turn.terms, resources: turn.resources },
     }
   })
 

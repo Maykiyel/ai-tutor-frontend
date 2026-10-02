@@ -3,14 +3,16 @@ import { useParams } from 'react-router'
 
 import { ErrorState } from '@/components/ui/error-state'
 import { LoadingState } from '@/components/ui/loading-state'
+import { LessonPreview } from '@/features/lessons/components/lesson-preview'
 import { MissionInterview } from '@/features/mission-interview/components/mission-interview'
 import { workspaceQueries } from '@/features/workspace/queries/workspace-queries'
 
 /**
  * The interview needs the workspace's topic, and the workspace read belongs to
  * the workspace feature. Features do not import from one another, so the route
- * is where the two meet: it reads the workspace and hands the interview the
- * one thing it needs from it.
+ * is where the three meet: it reads the workspace, hands the interview the one
+ * thing it needs from it, and composes the lessons feature's preview under the
+ * finished interview's mission draft.
  */
 export function WorkspaceMissionInterviewPage() {
   const { workspaceId = '' } = useParams()
@@ -30,5 +32,11 @@ export function WorkspaceMissionInterviewPage() {
     )
   }
 
-  return <MissionInterview workspaceId={workspaceId} topic={workspace.data.topic} />
+  return (
+    <MissionInterview
+      workspaceId={workspaceId}
+      topic={workspace.data.topic}
+      renderLessonPreview={(data) => <LessonPreview data={data} />}
+    />
+  )
 }

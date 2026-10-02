@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   completeTurnResponse,
+  completeTurnWithLessonResponse,
   openingTurnResponse,
+  rawJsonTurnResponse,
   unparsedTurnResponse,
 } from '../fixtures/interview-fixtures'
 import { interviewTurnResponseSchema } from './interview-schema'
@@ -31,7 +33,27 @@ describe('interview turn schema', () => {
       constraints: ['Two hours a week, weekdays only'],
       outOfScope: ['Geometry'],
     })
-    expect(turn).not.toHaveProperty('lesson')
+    expect(turn.parseError).toBeNull()
+  })
+
+  it('carries a full lesson turn through unparsed for the preview', () => {
+    const turn = interviewTurnResponseSchema.parse(completeTurnWithLessonResponse)
+
+    expect(turn.status).toBe('complete')
+    expect(turn.lessonData).toMatchObject({
+      terms: {},
+      resources: { '1': { title: 'Two-step equations, worked slowly' } },
+    })
+    expect((turn.lessonData?.lesson as { title?: unknown })?.title).toBe('Two-step equations')
+  })
+
+  it('marks a turn the backend could not parse instead of passing the raw JSON through', () => {
+    const turn = interviewTurnResponseSchema.parse(rawJsonTurnResponse)
+
+    expect(turn.status).toBe('interviewing')
+    expect(turn.parseError).toMatch(/not valid JSON/i)
+    expect(turn.lessonData).toBeNull()
+    expect(turn.missionDraft).toBeNull()
   })
 
   it('keeps a turn the model wrote in prose, with no questions and no draft', () => {
