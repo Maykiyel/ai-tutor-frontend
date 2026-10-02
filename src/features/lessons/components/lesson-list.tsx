@@ -72,7 +72,9 @@ export function LessonList() {
         workspaceId={workspaceId}
         isGenerating={generation.isGenerating}
         isAsking={generation.isAsking}
+        timedOut={generation.timedOut}
         askFailed={generation.askFailed}
+        askRefusedForMission={generation.askRefusedForMission}
         onAsk={generation.askForNextLesson}
       />
 

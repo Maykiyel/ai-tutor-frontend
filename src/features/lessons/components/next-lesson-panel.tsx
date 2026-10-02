@@ -9,16 +9,19 @@ type NextLessonPanelProps = {
   workspaceId: string
   isGenerating: boolean
   isAsking: boolean
+  timedOut: boolean
   askFailed: boolean
+  askRefusedForMission: boolean
   onAsk: () => void
 }
 
 /**
  * Everything about asking for the next lesson, in one place above the list.
  *
- * Four states, and they are exclusive rather than layered: a request that failed
- * is not also a generation in progress, a generation in progress is not also an
- * offer to ask, and a workspace with no mission is not waiting for anything.
+ * Its states are exclusive rather than layered: a request that failed is not also
+ * a generation in progress, a generation in progress is not also an offer to ask,
+ * a wait that gave up is not still waiting, and a workspace with no mission is not
+ * waiting for anything.
  *
  * The gate is the active mission rather than the mere existence of one. Missions
  * are revisions with exactly one active per workspace, so a mission the backend
@@ -29,7 +32,9 @@ export function NextLessonPanel({
   workspaceId,
   isGenerating,
   isAsking,
+  timedOut,
   askFailed,
+  askRefusedForMission,
   onAsk,
 }: NextLessonPanelProps) {
   const mission = useQuery(missionQueries.mission(workspaceId))
@@ -40,6 +45,21 @@ export function NextLessonPanel({
    * cannot coexist with a generation in progress, because a failure clears the
    * pending flag.
    */
+  if (askRefusedForMission) {
+    /*
+     * The one refusal a retry cannot fix. The app only offers the action when it
+     * saw an active mission, so the mission changed since; it is read again, and
+     * the learner is told the reason rather than offered a button that would be
+     * refused the same way.
+     */
+    return (
+      <ErrorState
+        title="This workspace has no active mission"
+        message="Nothing was queued. A lesson is written to a mission, and this workspace no longer has an active one."
+      />
+    )
+  }
+
   if (askFailed) {
     return (
       <ErrorState
@@ -52,6 +72,24 @@ export function NextLessonPanel({
 
   if (isGenerating || isAsking) {
     return <WaitingForLesson />
+  }
+
+  /*
+   * A generation that failed on the backend leaves nothing behind and sends
+   * nothing, so after the cap the wait ends in words instead of polling on. Asking
+   * again is safe: the backend never queues two lessons for one workspace.
+   */
+  if (timedOut) {
+    return (
+      <ErrorState
+        title="Your next lesson did not arrive"
+        message="It has been ten minutes and nothing has come back, so it is not coming. Nothing is lost by asking again, and only one lesson is ever written at a time."
+      >
+        <Button variant="light" onClick={onAsk}>
+          Ask again
+        </Button>
+      </ErrorState>
+    )
   }
 
   /*
