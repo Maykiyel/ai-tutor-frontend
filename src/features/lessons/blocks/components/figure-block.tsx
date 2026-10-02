@@ -97,8 +97,8 @@ function ImageFigure({ source, alt }: { source: string; alt: string }) {
  *
  * Drawing is asynchronous and it can fail: the source is the model's, so a lesson
  * can arrive with a diagram mermaid cannot parse. Neither is allowed to cost the
- * learner the block. Until the drawing arrives there is nothing to read, and if it
- * never does the figure becomes its own words — the alt text the contract
+ * learner the block. Until the drawing arrives the figure is its alt text, marked
+ * busy, and if it never does the figure becomes its own words — the alt text the contract
  * guarantees and the caption that came with it — in a live region, because the
  * learner may well have read past the place where the diagram was going to be.
  */
@@ -149,13 +149,23 @@ function MermaidFigure({ source, alt }: { source: string; alt: string }) {
     )
   }
 
-  if (drawing === 'waiting') {
-    return null
-  }
+  // The figure exists, named, from the first render. While mermaid loads and
+  // draws — seconds, the first time a lesson has a diagram — it is marked busy and
+  // says so in a line of its own, holding a little height so the prose below
+  // moves less when the drawing arrives. The drawing then lands inside this same
+  // element: nothing new is inserted above the learner's place, and a figure they
+  // focused or read past is the one that now holds the diagram.
+  const waiting = drawing === 'waiting'
 
   return (
-    <Box role="img" aria-label={alt}>
-      <Box aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />
+    <Box role="img" aria-label={alt} aria-busy={waiting || undefined}>
+      {waiting ? (
+        <Text size="sm" mih={96} py="sm">
+          Drawing the diagram…
+        </Text>
+      ) : (
+        <Box aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />
+      )}
     </Box>
   )
 }

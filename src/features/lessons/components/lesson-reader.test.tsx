@@ -292,6 +292,19 @@ function scriptTraces(): string[] {
   return traces
 }
 
+/**
+ * The diagram of the given alt text, once mermaid has drawn it. The figure is on
+ * the page, named and busy, from the first render; this waits for the busy state
+ * to clear, which is the moment the drawing has landed in it.
+ */
+async function drawnDiagram(name: string): Promise<HTMLElement> {
+  const figure = screen.getByRole('img', { name })
+
+  await waitFor(() => expect(figure).not.toHaveAttribute('aria-busy'), { timeout: 30_000 })
+
+  return figure
+}
+
 /** What the skipped-parts notice says each gap is, one line per gap, in lesson order. */
 function skippedParts(notice: HTMLElement): string[] {
   return within(notice)
@@ -991,11 +1004,23 @@ describe('LessonReader', () => {
 
       await screen.findByRole('heading', { level: 1, name: 'The move, as a diagram' })
 
-      const diagram = await screen.findByRole(
-        'img',
-        { name: 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2' },
-        { timeout: 30_000 },
-      )
+      // Before the drawing arrives the figure is already there, named by its alt
+      // text and marked busy, so a learner reading past it hears what it will show
+      // rather than meeting a gap, and a sighted one sees that something is coming.
+      const name = 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2'
+      const waiting = screen.getByRole('img', { name })
+      expect(waiting).toHaveAttribute('aria-busy', 'true')
+      expect(waiting).toHaveTextContent('Drawing the diagram')
+
+      // The drawing lands in that same element, so nothing is inserted above the
+      // learner's place and the figure they may have focused or read past is still
+      // the one that now holds the diagram.
+      await waitFor(() => expect(waiting).toHaveTextContent('Add 4 to both sides'), {
+        timeout: 30_000,
+      })
+      const diagram = screen.getByRole('img', { name })
+      expect(diagram).toBe(waiting)
+      expect(diagram).not.toHaveAttribute('aria-busy')
 
       // The words of the diagram are the learner's to read, and the caption that
       // came with the block sits under it.
@@ -1023,10 +1048,8 @@ describe('LessonReader', () => {
       // Mermaid runs in strict mode with html labels off, so a label is words. The
       // payload's `<b>` stayed in the label as the four characters the learner sees,
       // and never became an element. See ADR-0001.
-      const labelled = await screen.findByRole(
-        'img',
-        { name: 'A diagram whose label carries markup and whose box carries a click' },
-        { timeout: 30_000 },
+      const labelled = await drawnDiagram(
+        'A diagram whose label carries markup and whose box carries a click',
       )
       // Mermaid lays a label out word by word, so the four characters the learner
       // reads are the ones that matter, not the spacing between them.
@@ -1064,12 +1087,8 @@ describe('LessonReader', () => {
       ).toBeInTheDocument()
 
       expect(
-        await screen.findByRole(
-          'img',
-          { name: 'Two boxes and an arrow, from 2x + 3 = 11 to x = 2' },
-          { timeout: 30_000 },
-        ),
-      ).toBeInTheDocument()
+        await drawnDiagram('Two boxes and an arrow, from 2x + 3 = 11 to x = 2'),
+      ).toHaveTextContent('Add 4 to both sides')
     },
     DIAGRAM_TIMEOUT,
   )
