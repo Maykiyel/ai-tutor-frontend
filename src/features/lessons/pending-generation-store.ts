@@ -8,18 +8,38 @@ import { create } from 'zustand'
 export const LESSON_LIST_POLL_INTERVAL_MS = 5_000
 
 /**
- * What the waiting state remembers: the highest lesson number the app had for
- * this workspace at the moment the learner asked. The wait ends when the list
- * holds a number higher than this.
+ * How long the app waits for a lesson before saying it did not arrive.
+ *
+ * The backend queues the job, tries the model up to three times, and stores
+ * nothing if every try fails. Nothing tells the app that happened: there is no
+ * job status endpoint, so a failed generation and a slow one look the same from
+ * here. Without a cap the waiting state would poll forever. Ten minutes is well
+ * past a slow generation, and asking again after it is safe, because the backend
+ * never queues two lessons for one workspace at once.
  */
-type PendingGeneration = {
+export const LESSON_GENERATION_TIMEOUT_MS = 10 * 60_000
+
+/**
+ * What the waiting state remembers: the highest lesson number the app had for
+ * this workspace at the moment the learner asked, and when they asked. The wait
+ * ends when the list holds a number higher than `afterNumber`, or gives up once
+ * `LESSON_GENERATION_TIMEOUT_MS` has passed since `startedAt`.
+ */
+export type PendingGeneration = {
   afterNumber: number
+  startedAt: number
+}
+
+/** Whether a wait has run past the cap, as of `now`. */
+export function hasTimedOut(pending: PendingGeneration, now = Date.now()): boolean {
+  return now - pending.startedAt >= LESSON_GENERATION_TIMEOUT_MS
 }
 
 type PendingGenerationState = {
   pending: Record<string, PendingGeneration | undefined>
   start: (workspaceId: string, afterNumber: number) => void
   clear: (workspaceId: string) => void
+  /** Waiting, and not yet past the cap. A wait that timed out polls no more. */
   isGenerating: (workspaceId: string) => boolean
 }
 
@@ -47,7 +67,9 @@ type PendingGenerationState = {
 export const usePendingGenerationStore = create<PendingGenerationState>()((set, get) => ({
   pending: {},
   start: (workspaceId, afterNumber) =>
-    set((state) => ({ pending: { ...state.pending, [workspaceId]: { afterNumber } } })),
+    set((state) => ({
+      pending: { ...state.pending, [workspaceId]: { afterNumber, startedAt: Date.now() } },
+    })),
   clear: (workspaceId) =>
     set((state) => {
       const next = { ...state.pending }
@@ -55,5 +77,9 @@ export const usePendingGenerationStore = create<PendingGenerationState>()((set, 
 
       return { pending: next }
     }),
-  isGenerating: (workspaceId) => Boolean(get().pending[workspaceId]),
+  isGenerating: (workspaceId) => {
+    const pending = get().pending[workspaceId]
+
+    return pending !== undefined && !hasTimedOut(pending)
+  },
 }))

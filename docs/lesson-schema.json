@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Maykiyel/ai-tutor-frontend/docs/lesson-schema.json",
   "title": "AI tutor lesson contract",
-  "description": "Shared contract between the Laravel backend and the React frontend. This file is the single source of truth for the lesson format and the attempt contract. The backend validates against it before saving a lesson; the frontend parses against it (via Zod) before rendering. Prose descriptions of the lesson format live in docs/lesson-format.md and are not authoritative.",
+  "description": "Shared contract between the Laravel backend and the React frontend. This file is the single source of truth for the lesson format and the attempt contract, and, under `$defs` only, for the workspace, mission, lesson-list and error responses the lesson reader reads. The backend validates against it before saving a lesson; the frontend parses against it (via Zod) before rendering. Prose descriptions of the lesson format live in docs/lesson-format.md and are not authoritative.",
   "type": "object",
   "required": ["lesson"],
   "additionalProperties": false,
@@ -21,6 +21,65 @@
   },
 
   "$defs": {
+    "apiEnvelope": {
+      "type": "object",
+      "required": ["message", "data"],
+      "properties": {
+        "message": { "type": "string" },
+        "data": {}
+      },
+      "description": "Every successful API response wraps its payload as `{ message, data }`. The `$defs` below describe what goes in `data`; the lesson response root and `attemptResult` are the `data` of their endpoints too. Agreed with the backend."
+    },
+
+    "apiError": {
+      "type": "object",
+      "required": ["message", "code"],
+      "properties": {
+        "message": { "type": "string" },
+        "code": {
+          "type": "string",
+          "description": "Machine-readable reason, for example `CONFLICT`, `SERVICE_UNAVAILABLE` or `RESOURCE_NOT_FOUND`."
+        }
+      },
+      "description": "Every refusal that is not a validation failure. Validation failures are Laravel's standard 422 `{ message, errors }`, with `errors` keyed by field (`topic`, `answers`, `answers.N`). A workspace, lesson or attempt belonging to another learner is a 404, the same as a missing one. Agreed with the backend."
+    },
+
+    "workspace": {
+      "type": "object",
+      "required": ["id", "topic"],
+      "properties": {
+        "id": { "type": "integer" },
+        "topic": { "type": "string", "minLength": 1 }
+      },
+      "description": "`data` of `GET /api/workspaces/{id}` (200) and `POST /api/workspaces` (201). `GET /api/workspaces` returns an array of these, the learner's own only, ordered by id. `POST` takes `{ topic }`; an empty or whitespace topic is a 422 on `topic`. Agreed with the backend."
+    },
+
+    "mission": {
+      "type": "object",
+      "required": ["id", "why", "is_active", "success_criteria", "constraints", "out_of_scope"],
+      "properties": {
+        "id": { "type": "integer" },
+        "why": { "type": "string", "minLength": 1 },
+        "is_active": { "type": "boolean" },
+        "success_criteria": { "type": "array", "items": { "type": "string" } },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "out_of_scope": { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "`data` of `GET /api/workspaces/{id}/mission`: the workspace's active mission. With no active mission the response is 200 with `data: null`, never a 404, so a 404 here only ever means the workspace is not the learner's. Agreed with the backend."
+    },
+
+    "lessonListEntry": {
+      "type": "object",
+      "required": ["id", "number", "kind", "title", "minutes"],
+      "properties": {
+        "id": { "type": "integer" },
+        "number": { "type": "integer", "minimum": 1 },
+        "kind": { "$ref": "#/$defs/lessonKind" },
+        "title": { "type": "string", "minLength": 1 },
+        "minutes": { "type": "integer", "minimum": 1, "maximum": 15 }
+      },
+      "description": "`GET /api/workspaces/{id}/lessons` returns an array of these, ordered by `number`. `kind`, `title` and `minutes` are projected from the stored lesson. Agreed with the backend."
+    },
     "lesson": {
       "type": "object",
       "required": [
@@ -211,7 +270,7 @@
               "id": {
                 "type": "string",
                 "pattern": "^s[0-9]+$",
-                "description": "Lesson-scoped id. Sent back in the attempt."
+                "description": "Lesson-scoped id. Sent back in the attempt. Unique among the step ids in the lesson, across every steps block: an attempt is matched back to its step by this id alone."
               },
               "instruction": { "type": "string" },
               "check": {
@@ -238,7 +297,11 @@
             "required": ["id", "prompt", "options", "correctOptionId", "explanation"],
             "additionalProperties": false,
             "properties": {
-              "id": { "type": "string", "pattern": "^q[0-9]+$" },
+              "id": {
+                "type": "string",
+                "pattern": "^q[0-9]+$",
+                "description": "Lesson-scoped id. Sent back in the attempt as `questionId`. Unique among the question ids in the lesson, across every quiz block: an attempt is matched back to its question by this id alone."
+              },
               "prompt": { "type": "string" },
               "options": {
                 "type": "array",
@@ -281,7 +344,11 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "recall" },
-        "id": { "type": "string", "pattern": "^rc[0-9]+$" },
+        "id": {
+          "type": "string",
+          "pattern": "^rc[0-9]+$",
+          "description": "Lesson-scoped id. Sent back in the attempt as `recallId`. Unique among the recall ids in the lesson: an attempt is matched back to its recall block by this id alone."
+        },
         "prompt": { "type": "string" },
         "modelAnswer": {
           "type": "string",

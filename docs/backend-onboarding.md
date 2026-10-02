@@ -223,6 +223,7 @@ These are the rules the renderer relies on. If one of them stops holding, say so
 All paths carry the `/api` prefix.
 
 ```
+GET    /api/workspaces                       the learner's own workspaces
 POST   /api/workspaces
 GET    /api/workspaces/{id}
 PATCH  /api/workspaces/{id}                  teaching notes, community opt-out
@@ -254,8 +255,38 @@ POST   /api/workspaces/{id}/tutor/messages
 > agreed.** Stories 19, 21, 55, and 56 in the spec have no endpoint without them. Do
 > not build against them until confirmed.
 
-> **Open: how the frontend learns a job finished.** Polling a job status endpoint
-> versus polling the lesson list. Needs agreement.
+### Agreed with the backend
+
+These were open questions in the backend routes spec. The backend picked an answer for
+each, and they are now agreements. The response shapes are in `docs/lesson-schema.json`
+under `$defs` (`apiEnvelope`, `apiError`, `workspace`, `mission`, `lessonListEntry`).
+
+- Every success is `{ message, data }`. Every refusal that is not a validation failure
+  is `{ message, code }`. Validation failures are Laravel's 422 `{ message, errors }`.
+- Another learner's workspace, lesson or attempt is a 404, the same as a missing one.
+- "No mission" is 200 with `data: null` from `GET /api/workspaces/{id}/mission`. It is
+  never a 404.
+- `POST /api/workspaces/{id}/lessons/next` answers 202 with `data: null`. Without an
+  active mission it is 409 with `code: "CONFLICT"`. A second request while one is
+  queued or running is 202 again and queues nothing.
+- Lesson generation makes three attempts in total. Only a lesson that passes
+  validation is stored.
+- `POST /api/lessons/{id}/attempts` is 422 with errors keyed `answers` when the body
+  breaks `attemptRequest`, or `answers.N` when answer N names something the lesson does
+  not have or answers the same thing twice. It is 503 with
+  `code: "SERVICE_UNAVAILABLE"` when the recall grader fails. Nothing is stored, and
+  sending the same answers again is the right move.
+
+### Still open
+
+- **Where `modelAnswer` and `rubric` go after submit.** The `recallBlock` description
+  says the attempt result returns them, but `attemptResult` has no field for them. For
+  now the backend writes what the expected answer covered into each recall's
+  `feedback`, and the frontend shows that text as feedback.
+- **How a failed generation reaches the learner.** When all three attempts fail,
+  nothing is stored and nothing tells the frontend. There is no job status endpoint.
+  The frontend polls the lesson list and gives up after ten minutes, then offers to ask
+  again.
 
 ## Contract change protocol
 

@@ -7,7 +7,7 @@ import { paths } from '@/config/paths'
 import { getMission } from '@/lib/mission/mission-api'
 import { missionResponse, noMissionResponse } from '@/lib/mission/mission-fixtures'
 import { missionResponseSchema } from '@/lib/mission/mission-schema'
-import { fireEvent, renderWithRouter, screen } from '@/test/test-utils'
+import { fireEvent, renderWithRouter, screen, waitFor } from '@/test/test-utils'
 
 import { getLesson, listLessons, requestNextLesson } from '../api/lesson-api'
 import { conceptFixture } from '../fixtures/lesson-fixtures'
@@ -16,7 +16,9 @@ import {
   lessonListResponse,
   lessonListResponseWithNewLesson,
 } from '../fixtures/lesson-list-fixtures'
+import { noActiveMissionError } from '../fixtures/http-error-fixtures'
 import {
+  LESSON_GENERATION_TIMEOUT_MS,
   LESSON_LIST_POLL_INTERVAL_MS,
   usePendingGenerationStore,
 } from '../pending-generation-store'
@@ -243,6 +245,59 @@ describe('LessonList', () => {
     vi.mocked(requestNextLesson).mockResolvedValue(undefined)
     await learner.click(screen.getByRole('button', { name: 'Try again' }))
 
+    expect(await screen.findByText('Writing your next lesson')).toBeInTheDocument()
+  })
+  it('says a workspace has no active mission when asking is refused for it, and re-reads the mission', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(listLessons).mockResolvedValue(lessons)
+    vi.mocked(getMission).mockResolvedValue(mission)
+    vi.mocked(requestNextLesson).mockRejectedValueOnce(noActiveMissionError())
+
+    renderJourney()
+
+    await learner.click(await screen.findByRole('button', { name: /ask for the next lesson/i }))
+
+    expect(await screen.findByText('This workspace has no active mission')).toBeInTheDocument()
+
+    // Not a wait that never ends, and not an offer to send the same refused request.
+    expect(screen.queryByText('Writing your next lesson')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(usePendingGenerationStore.getState().isGenerating(WORKSPACE_ID)).toBe(false)
+
+    // The mission the button was offered on is out of date, so it is read again.
+    await waitFor(() => expect(vi.mocked(getMission)).toHaveBeenCalledTimes(2))
+  })
+
+  it('stops waiting once the cap has passed, says the lesson did not arrive, and offers to ask again', async () => {
+    const learner = userEvent.setup()
+    vi.mocked(listLessons).mockResolvedValue(lessons)
+    vi.mocked(getMission).mockResolvedValue(mission)
+    vi.mocked(requestNextLesson).mockResolvedValue(undefined)
+
+    // A wait that started just under the cap ago, so the screen opens waiting and the
+    // cap passes while it is open. Nothing settles and no store value moves when it
+    // does: the screen has to notice the clock on its own.
+    usePendingGenerationStore.setState({
+      pending: {
+        [WORKSPACE_ID]: {
+          afterNumber: 4,
+          startedAt: Date.now() - LESSON_GENERATION_TIMEOUT_MS + 300,
+        },
+      },
+    })
+
+    renderJourney()
+
+    expect(await screen.findByText('Writing your next lesson')).toBeInTheDocument()
+    expect(await screen.findByText('Your next lesson did not arrive')).toBeInTheDocument()
+    expect(screen.queryByText('Writing your next lesson')).not.toBeInTheDocument()
+
+    // Polling stops with the wait: a timed-out generation asks the list nothing more.
+    expect(usePendingGenerationStore.getState().isGenerating(WORKSPACE_ID)).toBe(false)
+
+    await learner.click(screen.getByRole('button', { name: 'Ask again' }))
+
+    expect(vi.mocked(requestNextLesson)).toHaveBeenCalledWith(WORKSPACE_ID)
     expect(await screen.findByText('Writing your next lesson')).toBeInTheDocument()
   })
 })
