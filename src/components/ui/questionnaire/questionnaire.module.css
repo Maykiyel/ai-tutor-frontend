@@ -1,0 +1,66 @@
+/*
+ * One class for every fixed answer, the same affordance the lesson quiz uses:
+ * the label is the row, so the whole row takes the pointer, and the hover and
+ * focus rules have something to paint. Every value is a Mantine theme token, so
+ * the row reads the same in either colour scheme.
+ */
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+
+  &[data-checked] {
+    border-color: var(--mantine-primary-color-filled);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+/* A fieldset carries a border, padding and a min-width by default, none of
+   which this layout wants. The legend stays a legend; only its box is reset. */
+.item {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 4px;
+    border-radius: var(--mantine-radius-sm);
+  }
+}
+
+.title {
+  padding: 0;
+  margin-bottom: var(--mantine-spacing-xs);
+  font-weight: 600;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+/* A span, not a div: a label may only hold phrasing content. */
+.choiceBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
