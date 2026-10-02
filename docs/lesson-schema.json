@@ -211,7 +211,7 @@
               "id": {
                 "type": "string",
                 "pattern": "^s[0-9]+$",
-                "description": "Lesson-scoped id. Sent back in the attempt."
+                "description": "Lesson-scoped id. Sent back in the attempt. Unique among the step ids in the lesson, across every steps block: an attempt is matched back to its step by this id alone."
               },
               "instruction": { "type": "string" },
               "check": {
@@ -238,7 +238,11 @@
             "required": ["id", "prompt", "options", "correctOptionId", "explanation"],
             "additionalProperties": false,
             "properties": {
-              "id": { "type": "string", "pattern": "^q[0-9]+$" },
+              "id": {
+                "type": "string",
+                "pattern": "^q[0-9]+$",
+                "description": "Lesson-scoped id. Sent back in the attempt as `questionId`. Unique among the question ids in the lesson, across every quiz block: an attempt is matched back to its question by this id alone."
+              },
               "prompt": { "type": "string" },
               "options": {
                 "type": "array",
@@ -281,7 +285,11 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "recall" },
-        "id": { "type": "string", "pattern": "^rc[0-9]+$" },
+        "id": {
+          "type": "string",
+          "pattern": "^rc[0-9]+$",
+          "description": "Lesson-scoped id. Sent back in the attempt as `recallId`. Unique among the recall ids in the lesson: an attempt is matched back to its recall block by this id alone."
+        },
         "prompt": { "type": "string" },
         "modelAnswer": {
           "type": "string",
