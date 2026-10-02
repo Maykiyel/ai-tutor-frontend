@@ -3,11 +3,9 @@ import { z } from 'zod'
 import { lessonKindSchema } from './lesson-schema'
 
 /**
- * The lesson *list* response has no shared contract. `docs/lesson-schema.json`
- * covers the lesson and the attempt only, so this is the frontend's own guess,
- * derived from the endpoint list in `docs/backend-onboarding.md`. It is a known
- * gap, not an agreement, and the first divergence gets resolved as a commit to
- * the shared schema file like every other contract change.
+ * Mirrors `lessonListEntry` in the `$defs` of `docs/lesson-schema.json`, agreed
+ * with the backend. The backend orders the list by `number`; the screen sorts it
+ * anyway, for the reason given in `lesson-list.tsx`.
  *
  * What is here is exactly what the list screen has to draw, and nothing else:
  *
@@ -21,8 +19,7 @@ import { lessonKindSchema } from './lesson-schema'
  * - `title`, because the row's link text is the title.
  * - `minutes`, because the row shows the lesson's length. `LESSONS` has no
  *   `minutes` column — it lives in the lesson JSON — so this is the endpoint
- *   projecting `content.minutes` into the row. That projection is unagreed, and
- *   it is the most likely thing to differ first.
+ *   projecting `content.minutes` into the row, as agreed.
  *
  * Unknown fields are tolerated on purpose: a Zod object drops keys it does not
  * describe, so `generated_at`, `skill`, `mission_link`, or anything the backend

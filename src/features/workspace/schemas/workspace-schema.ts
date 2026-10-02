@@ -1,14 +1,10 @@
 import { z } from 'zod'
 
 /**
- * There is no shared contract for this response. `docs/lesson-schema.json`
- * covers the lesson and the attempt only, so the shape below is the frontend's
- * own guess, derived from the data model in `docs/backend-onboarding.md`. It is
- * a known gap, not an agreement — see "Responses with no shared contract" in
- * the lesson-reader spec. The first divergence gets resolved as a commit to the
- * shared schema file, like every other contract change.
+ * Mirrors `workspace` in the `$defs` of `docs/lesson-schema.json`, agreed with
+ * the backend. Only the fields these screens use are described.
  *
- * Two consequences of it being a guess, both deliberate:
+ * Two tolerances, both deliberate, kept from when the shape was a guess:
  *
  * - Unknown fields are tolerated. A Zod object drops keys it does not
  *   describe, so a field the backend adds later cannot fail the parse. Never

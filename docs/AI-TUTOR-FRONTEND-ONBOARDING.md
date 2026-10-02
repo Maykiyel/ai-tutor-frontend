@@ -308,7 +308,8 @@ Ship each step end to end before starting the next.
 
 - **How the frontend learns a queued job finished.** Polling a job status endpoint,
   polling the lesson list, or pushing events. Needs agreement with the backend
-  developer.
+  developer. Until then the app polls the lesson list, and gives up after ten minutes
+  because a failed generation sends nothing.
 - Whether the lesson reader needs offline support. Currently out of scope.
 
 ### Settled by the lesson reader spec

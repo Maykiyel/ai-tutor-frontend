@@ -6,15 +6,10 @@ import { z } from 'zod'
  * whether a lesson can be asked for before it offers to ask. Features do not
  * import from one another, so the shared read is promoted rather than reached into.
  *
- * There is no shared contract for this response either. `docs/lesson-schema.json`
- * covers the lesson and the attempt only, so the shape below is the frontend's
- * own guess, derived from the data model and the guarantees in
- * `docs/backend-onboarding.md`. It is a known gap, not an agreement — see
- * "Responses with no shared contract" in the lesson-reader spec, and the same
- * reasoning as `workspace-schema.ts`. The first divergence gets resolved as a
- * commit to a shared schema file, not as a conversation.
+ * Mirrors `mission` in the `$defs` of `docs/lesson-schema.json`, agreed with the
+ * backend. A workspace with no active mission answers 200 with `data: null`.
  *
- * Two consequences of it being a guess, both deliberate:
+ * Two tolerances, both deliberate, kept from when the shape was a guess:
  *
  * - Unknown fields are tolerated. A Zod object drops keys it does not describe,
  *   so the rest of the mission (`success_criteria`, `constraints`,

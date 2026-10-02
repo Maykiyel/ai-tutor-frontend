@@ -184,7 +184,8 @@ it alone and any change must land in
   own memory.
 - **Lesson validator.** Rejects lessons that break the rules in
   [`docs/lesson-format.md`](lesson-format.md#validation-rules). A rejected lesson is
-  regenerated. The retry limit is open.
+  regenerated, for three attempts in total; see "Agreed with the backend" in
+  `docs/backend-onboarding.md`.
 - **Attempts and grader.** Multiple choice is graded in the backend. Recall answers go
   to a grader call that returns per-answer feedback, an optional record candidate, and
   glossary candidates.
@@ -300,6 +301,10 @@ POST   /api/workspaces/{id}/tutor/messages
 All paths carry the `/api` prefix, matching `src/lib/api/client.ts` and the endpoint
 modules in `src/features/auth/`.
 
+Status codes, error bodies and the workspace, mission and lesson-list shapes are
+agreed. They are listed under "Agreed with the backend" in
+`docs/backend-onboarding.md`, and the shapes are `$defs` in `docs/lesson-schema.json`.
+
 > **Pending backend agreement.** `PATCH /api/workspaces/{id}`,
 > `DELETE /api/workspaces/{id}`, and `POST /api/workspaces/{id}/resources` are **not yet
 > agreed with the backend developer.** They are listed because stories 19, 21, 55, and
@@ -400,8 +405,9 @@ Prior art in this repository
   `resources` map.
 - Open decisions that need an owner. The model provider, the spaced repetition
   algorithm, how long learner answers are kept, whether communities are curated or
-  found per learner, the retry limit when regenerating a rejected lesson, and which SVG
-  sanitizer the backend uses. When attempts are submitted was on this list too. It is
+  found per learner, and which SVG sanitizer the backend uses. The retry limit when
+  regenerating a rejected lesson was on this list too. It is settled as three attempts
+  in total. When attempts are submitted was on this list too. It is
   settled as once, at the end of the lesson; see the frontend onboarding document.
 - The lesson recipe matrix is a first guess. Tune it once real generated lessons exist.
 - The backend is built by a separate developer, who reads this repository. Contract
